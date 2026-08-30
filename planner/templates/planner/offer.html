@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>הגשת הצעת מחיר</title>
+    <style>
+      body {
+        margin: 0;
+        background: #182019;
+        color: #f5f1e8;
+        font-family: Arial, sans-serif;
+      }
+      .box {
+        max-width: 560px;
+        margin: 35px auto;
+        padding: 24px;
+        background: #222d25;
+        border: 1px solid #3b493e;
+        border-radius: 18px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      p {
+        color: #c5c8bf;
+        line-height: 1.6;
+      }
+      .data {
+        padding: 12px;
+        background: #182019;
+        border-radius: 10px;
+        margin: 16px 0;
+      }
+      label {
+        display: block;
+        margin: 12px 0;
+        font-weight: bold;
+      }
+      input,
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        margin-top: 6px;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #566249;
+        background: #111811;
+        color: white;
+        font: 16px Arial;
+      }
+      button {
+        background: #e9ae50;
+        border: 0;
+        border-radius: 10px;
+        padding: 14px 20px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .error {
+        color: #ffb2a3;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="box">
+      <h1>הגשת הצעת מחיר</h1>
+      <p>
+        שלום {{ invitation.business.name }}, הגישו את המחיר שלכם עבור הפרויקט.
+      </p>
+      <div class="data">
+        <b>לקוח:</b> {{ invitation.request.name }}<br /><b>מידות:</b> {{
+        invitation.request.width }} × {{ invitation.request.length }} מ׳<br /><b
+          >סוג:</b
+        >
+        {{ invitation.request.get_pergola_type_display }} · {{
+        invitation.request.get_roof_type_display }}<br /><b>צבע:</b> {{
+        invitation.request.color }}{% if invitation.request.lighting %} · כולל
+        תאורה{% endif %}{% if invitation.request.space_photo %}<br /><a
+          href="{{ invitation.request.space_photo.url }}"
+          target="_blank"
+          >צפייה בתמונת השטח</a
+        >{% endif %}
+      </div>
+      {% if error %}
+      <p class="error">{{ error }}</p>
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}<label
+          >מחיר כולל בש״ח<input
+            type="number"
+            name="price"
+            min="1"
+            required /></label
+        ><label
+          >הודעה ללקוח / תנאים<textarea
+            name="message"
+            rows="5"
+            placeholder="לדוגמה: המחיר כולל התקנה ואחריות..."
+          ></textarea></label
+        ><button>שליחת הצעת המחיר</button>
+      </form>
+    </main>
+  </body>
+</html>

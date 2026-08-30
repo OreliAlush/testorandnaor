@@ -1,0 +1,93 @@
+.upload-zone {
+  min-height: 172px;
+  border: 2px dashed #64725d;
+  border-radius: 17px;
+  background: #202b23;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  gap: 4px;
+  color: var(--ink);
+}
+.upload-zone:hover {
+  border-color: var(--accent);
+  background: #263227;
+}
+.upload-zone > span {
+  font-size: 36px;
+  color: var(--accent);
+  line-height: 1;
+}
+.upload-zone small {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.upload-zone input {
+  display: none;
+}
+.photo-planner {
+  position: relative;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  line-height: 0;
+  background: #101611;
+}
+.photo-planner img {
+  display: block;
+  width: 100%;
+  max-height: 310px;
+  object-fit: contain;
+}
+.photo-planner svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.photo-planner svg polygon {
+  fill: rgba(233, 174, 80, 0.24);
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+.photo-planner svg circle {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+.hidden {
+  display: none;
+}
+.planner-help {
+  background: #303224;
+  border: 1px solid #77653d;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 9px;
+  font-size: 13px;
+}
+.planner-help b,
+.planner-help span {
+  display: block;
+}
+.planner-help span {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.text-button {
+  padding: 0;
+  margin-top: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: 700 12px Heebo;
+  cursor: pointer;
+}

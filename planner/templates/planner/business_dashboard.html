@@ -1,0 +1,103 @@
+{% load static %}<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>דשבורד | {{ business.name }}</title>
+    <link rel="stylesheet" href="{% static 'planner/portal.css' %}" />
+  </head>
+  <body class="portal">
+    <main class="shell">
+      <header class="topbar">
+        <a class="logo" href="/">Or<b>ProServices</b></a
+        ><span
+          ><span class="pill">{{ business.name }}</span>
+          <a class="pill" href="{% url 'business_logout' %}">יציאה</a></span
+        >
+      </header>
+      <section class="hero">
+        <h1>ניהול פניות והצעות.</h1>
+        <p>שלחת הצעה? עקוב אחריה וסגור אותה כבוצע או לא מעוניין.</p>
+      </section>
+      <section class="card">
+        <h2>בקשות כלליות רלוונטיות</h2>
+        <ul class="requests">
+          {% for item in general_requests %}
+          <li>
+            <b>{{ item.category.name }} · {{ item.name }}</b><br /><span
+              class="muted"
+              >{{ item.city }} · {{ item.urgency }}</span
+            ><br /><a class="button" href="{% url 'general_offer' item.pk %}"
+              >הגשת הצעה</a
+            >
+          </li>
+          {% empty %}
+          <li class="muted">אין בקשות כלליות פתוחות.</li>
+          {% endfor %}
+        </ul>
+      </section>
+      <section class="card" style="margin-top: 16px">
+        <h2>הצעות ששלחתי</h2>
+        <ul class="requests">
+          {% for offer in general_offers %}
+          <li>
+            <b>{{ offer.request.category.name }} · {{ offer.request.name }}</b>
+            — ₪ {{ offer.price }}<br /><span class="muted"
+              >סטטוס: {{ offer.status }}</span
+            >{% if offer.status == 'הצעה נשלחה' %}
+            <form
+              method="post"
+              action="{% url 'update_offer_status' 'general' offer.token 'בוצע' %}"
+              style="display: inline"
+            >
+              {% csrf_token %}<button>סמן בוצע</button>
+            </form>
+            <form
+              method="post"
+              action="{% url 'update_offer_status' 'general' offer.token 'לא מעוניין' %}"
+              style="display: inline"
+            >
+              {% csrf_token %}<button class="secondary">לא מעוניין</button>
+            </form>
+            {% endif %}
+          </li>
+          {% endfor %}{% for offer in direct_offers %}
+          <li>
+            <b>פנייה ישירה · {{ offer.request.name }}</b> — ₪ {{ offer.price }}<br /><span class="muted">סטטוס: {{ offer.status }}</span>{% if offer.status == 'הצעה נשלחה' %}
+            <form
+              method="post"
+              action="{% url 'update_offer_status' 'direct' offer.token 'בוצע' %}"
+              style="display: inline"
+            >
+              {% csrf_token %}<button>סמן בוצע</button>
+            </form>
+            <form
+              method="post"
+              action="{% url 'update_offer_status' 'direct' offer.token 'לא מעוניין' %}"
+              style="display: inline"
+            >
+              {% csrf_token %}<button class="secondary">לא מעוניין</button>
+            </form>
+            {% endif %}
+          </li>
+          {% empty %}{% if not general_offers %}
+          <li class="muted">עדיין לא שלחת הצעות.</li>
+          {% endif %}{% endfor %}
+        </ul>
+      </section>
+      <section class="card" style="margin-top: 16px">
+        <h2>קישור חדש ללקוח</h2>
+        <form method="post" action="{% url 'create_client_link' %}">
+          {% csrf_token %}<label>שם קישור<input name="label" required /></label
+          ><label
+            >תחום<select name="category">
+              {% for c in business.categories.all %}
+              <option value="{{ c.id }}">{{ c.name }}</option>
+              {% endfor %}
+            </select></label
+          ><button>יצירת קישור</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

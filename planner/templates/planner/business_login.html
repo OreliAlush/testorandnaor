@@ -1,0 +1,29 @@
+{% load static %}<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>כניסת בעלי עסקים | OrProServices</title>
+    <link rel="stylesheet" href="{% static 'planner/portal.css' %}" />
+  </head>
+  <body class="portal">
+    <main class="shell" style="max-width: 480px">
+      <header class="topbar">
+        <a class="logo" href="/">Or<b>ProServices</b></a
+        ><span class="pill">פורטל עסקים</span>
+      </header>
+      <section class="hero">
+        <h1>כניסה לעסק</h1>
+        <p>פניות, קישורים והצעות מחיר במקום אחד.</p>
+        <form method="post">
+          {% csrf_token %}{% if form.errors %}
+          <p class="error">שם משתמש או סיסמה אינם תקינים.</p>
+          {% endif %}<label
+            >שם משתמש<input name="username" autofocus required /></label
+          ><label>סיסמה<input type="password" name="password" required /></label
+          ><button>כניסה לדשבורד ←</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

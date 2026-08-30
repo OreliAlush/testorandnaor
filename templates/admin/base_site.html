@@ -1,0 +1,16 @@
+{% extends "admin/base.html" %} {% load static %} {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}ניהול אתר | OrProServices{% endblock %}
+{% block extrastyle %}{{ block.super }}<link
+  rel="stylesheet"
+  href="{% static 'planner/admin_pro.css' %}"
+/>{% endblock %} {% block branding %}
+<div id="site-name">
+  <a href="{% url 'admin:index' %}"
+    ><span>Or</span>ProServices <small>ניהול האתר</small></a
+  >
+</div>
+{% endblock %} {% block nav-global %}<a
+  class="admin-view-site"
+  href="/"
+  target="_blank"
+  >צפייה באתר ↗</a
+>{% endblock %}

@@ -1,0 +1,31 @@
+{% load static %}<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>הצעת מחיר | {{ business.name }}</title>
+    <link rel="stylesheet" href="{% static 'planner/portal.css' %}" />
+  </head>
+  <body class="portal">
+    <main class="shell" style="max-width: 620px">
+      <section class="hero">
+        <span class="pill">הצעת מחיר אישית</span>
+        <h1>{{ business.name }}</h1>
+        <p>שלום {{ customer.name }}, זו הצעת המחיר שהוכנה עבורך.</p>
+      </section>
+      <section class="card">
+        <p class="muted">מחיר כולל</p>
+        <h1 style="color: #edb75c">₪ {{ offer.price }}</h1>
+        <p style="white-space: pre-line">
+          {{ offer.message|default:"פרטי ההצעה נמסרו על ידי בעל העסק." }}
+        </p>
+        <hr style="border-color: #405444" />
+        <h2>יצירת קשר</h2>
+        <p>
+          <b>{{ business.name }}</b><br />{{ business.phone }}<br />{{
+          business.email }}
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

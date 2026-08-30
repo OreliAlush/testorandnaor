@@ -1,0 +1,153 @@
+{% load static %}<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{ category.name }} | OrProServices</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&family=Rubik:wght@500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'planner/portal.css' %}" />
+    <link rel="stylesheet" href="{% static 'planner/service_wizard.css' %}" />
+  </head>
+  <body class="portal">
+    <main class="shell" style="max-width: 720px">
+      <header class="topbar">
+        <a class="logo" href="/">Or<b>ProServices</b></a
+        ><span class="pill">{{ category.icon }} {{ category.name }}</span>
+      </header>
+      <section class="hero">
+        <p class="pill">מתכנן פרויקט</p>
+        <h1>בואו נתכנן לפני שמבקשים הצעה.</h1>
+        <p>{{ tip }}</p>
+      </section>
+      {% if error %}
+      <p class="error">{{ error }}</p>
+      {% endif %}
+      <form
+        method="post"
+        enctype="multipart/form-data"
+        class="card service-wizard"
+      >
+        {% csrf_token %}
+        <div class="wizard-progress"><i class="on"></i><i></i><i></i></div>
+        <section class="step active">
+          <span class="pill">שלב 1 מתוך 3</span>
+          <h2>מה בדיוק אתם צריכים?</h2>
+          <p class="muted">
+            הבחירות האלו ישמשו בהמשך גם להצגת מודל 3D ו־AR מותאם.
+          </p>
+          <label>סוג עבודה</label>
+          <div class="choice-select">
+            {% for value in options.type %}<label
+              ><input
+                type="radio"
+                name="service_type"
+                value="{{ value }}"
+                {% if forloop.first %}checked{% endif %}
+              />{{ value }}</label
+            >{% endfor %}
+          </div>
+          <label>סגנון / פתרון מועדף</label>
+          <div class="choice-select">
+            {% for value in options.style %}<label
+              ><input
+                type="radio"
+                name="style"
+                value="{{ value }}"
+                {% if forloop.first %}checked{% endif %}
+              />{{ value }}</label
+            >{% endfor %}
+          </div>
+          {% if options.extras %}<label>תוספות רצויות</label>
+          <div class="choice-select">
+            {% for extra in options.extras %}<label
+              ><input type="checkbox" name="extras" value="{{ extra }}" />{{
+              extra }}</label
+            >{% endfor %}
+          </div>
+          {% endif %}
+          <div class="wizard-actions">
+            <span></span
+            ><button type="button" class="wizard-next">
+              המשך למידות ותמונות ←
+            </button>
+          </div>
+        </section>
+        <section class="step">
+          <span class="pill">שלב 2 מתוך 3</span>
+          <h2>מידות והמחשה</h2>
+          <p class="muted">העלו תמונה מהשטח. בהמשך זה יהיה הבסיס להצגת AR.</p>
+          <div class="grid">
+            <label
+              >גודל או כמות משוערת<input
+                name="work_area"
+                type="number"
+                step="0.1"
+                placeholder="מ״ר / יחידות / נקודות" /></label
+            ><label
+              >כתובת / אזור עבודה<input
+                name="address"
+                placeholder="לדוגמה: חיפה"
+            /></label>
+          </div>
+          <label class="photo-box"
+            >📷<br />תמונות מהשטח<input
+              name="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+            /><small class="muted">JPG, PNG או WEBP עד 10MB</small></label
+          >
+          <div class="info-card">
+            בגרסת ה־AR העתידית, הבחירות, המידות והתמונה יעזרו למקם מודל תלת־ממד
+            של התוצר בחלל.
+          </div>
+          <div class="wizard-actions">
+            <button type="button" class="secondary wizard-back">חזרה</button
+            ><button type="button" class="wizard-next">המשך לפרטים ←</button>
+          </div>
+        </section>
+        <section class="step">
+          <span class="pill">שלב 3 מתוך 3</span>
+          <h2>שליחת בקשה להצעת עבודה</h2>
+          <div class="grid">
+            <label>שם מלא<input name="name" required /></label
+            ><label>טלפון<input name="phone" type="tel" required /></label
+            ><label>אימייל<input name="email" type="email" /></label
+            ><label>עיר<input name="city" /></label>
+          </div>
+          <div class="grid">
+            <label
+              >תקציב משוער (ש״ח)<input
+                name="budget"
+                type="number"
+                min="0" /></label
+            ><label>מועד מועדף<input name="preferred_date" type="date" /></label
+            ><label
+              >דחיפות<select name="urgency">
+                <option>רגיל</option>
+                <option>בשבוע הקרוב</option>
+                <option>דחוף</option>
+              </select></label
+            >
+          </div>
+          <label
+            >תיאור העבודה<textarea
+              name="description"
+              rows="6"
+              required
+              placeholder="מה חשוב לכם? מה המצב הקיים?"
+            ></textarea>
+          </label>
+          <div class="wizard-actions">
+            <button type="button" class="secondary wizard-back">חזרה</button
+            ><button>שליחת בקשה לבעלי מקצוע ←</button>
+          </div>
+        </section>
+      </form>
+    </main>
+    <script src="{% static 'planner/service_wizard.js' %}"></script>
+  </body>
+</html>

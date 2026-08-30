@@ -1,0 +1,71 @@
+{% load static %}<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>המומחים שלנו | OrProServices</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&family=Rubik:wght@500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'planner/portal.css' %}" />
+  </head>
+  <body class="portal">
+    <main class="shell">
+      <header class="topbar">
+        <a class="logo" href="/">Or<b>ProServices</b></a
+        ><a class="pill" href="/">חזרה לדף הבית</a>
+      </header>
+      <section class="hero">
+        <p class="pill">ניסיון שאפשר לראות</p>
+        <h1>המומחים שלנו והעבודות שלהם.</h1>
+        <p>הכירו בעלי מקצוע נבחרים והתרשמו מפרויקטים אמיתיים.</p>
+      </section>
+      <section class="grid">
+        {% for expert in experts %}
+        <article class="card">
+          {% if expert.photo %}<img
+            src="{{ expert.photo.url }}"
+            alt="{{ expert.business.name }}"
+            style="
+              width: 100%;
+              height: 190px;
+              object-fit: cover;
+              border-radius: 12px;
+            "
+          />{% endif %}
+          <h2>{{ expert.business.name }}</h2>
+          <p>{{ expert.headline }}</p>
+          <p>{{ expert.bio }}</p>
+          {% for project in expert.projects.all %}{% if project.is_published %}
+          <div
+            style="
+              border-top: 1px solid #405444;
+              padding-top: 12px;
+              margin-top: 12px;
+            "
+          >
+            {% if project.image %}<img
+              src="{{ project.image.url }}"
+              alt="{{ project.title }}"
+              style="
+                width: 100%;
+                height: 150px;
+                object-fit: cover;
+                border-radius: 10px;
+              "
+            />{% endif %}<b>{{ project.title }}</b>
+            <p class="muted">{{ project.description }}</p>
+          </div>
+          {% endif %}{% endfor %}
+        </article>
+        {% empty %}
+        <p class="muted">
+         אין עוד מומחים כרגע 
+        </p>
+        {% endfor %}
+      </section>
+    </main>
+  </body>
+</html>

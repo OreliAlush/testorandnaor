@@ -1,0 +1,228 @@
+{% load static %}
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>תכנון פרגולה | OrProServices</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Rubik:wght@500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'planner/style.css' %}" />
+    <link rel="stylesheet" href="{% static 'planner/photo.css' %}" />
+    <link rel="stylesheet" href="{% static 'planner/pergola_pro.css' %}" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header>
+        <a class="brand" href="/"
+          >{{ site.brand_name|slice:":2" }}<span
+            >{{ site.brand_name|slice:"2:" }}</span
+          ></a
+        ><span class="tag">תכנון פרגולות</span>
+      </header>
+      <div class="progress" aria-label="התקדמות">
+        <i class="on"></i><i></i><i></i><i></i><i></i>
+      </div>
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+      <form method="post" id="wizard" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        <section class="step active">
+          <p class="eyebrow">{{ site.brand_name|upper }} · תכנון חכם</p>
+          <h1>{{ site.pergola_title }}</h1>
+          <p class="lead">{{ site.pergola_lead }}</p>
+          <div class="hero-art">
+            <span>☀</span>
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+          <button type="button" class="button next">לתכנון הפרגולה ←</button>
+        </section>
+        <section class="step">
+          <p class="eyebrow">שלב 1 מתוך 4</p>
+          <h2>כמה מקום יש?</h2>
+          <p class="sub">
+            מדדו את השטח שבו תרצו את הפרגולה. אפשר לעגל מעט למעלה.
+          </p>
+          <div class="dimension-card">
+            <div class="dimension-art"><span>↔</span><b>רוחב</b></div>
+            <label
+              >רוחב במטרים<input
+                name="width"
+                type="number"
+                min="1"
+                max="20"
+                step="0.1"
+                placeholder="לדוגמה: 4.5"
+                required
+            /></label>
+          </div>
+          <div class="dimension-card">
+            <div class="dimension-art length"><span>↕</span><b>אורך</b></div>
+            <label
+              >אורך במטרים<input
+                name="length"
+                type="number"
+                min="1"
+                max="20"
+                step="0.1"
+                placeholder="לדוגמה: 3"
+                required
+            /></label>
+          </div>
+          <p class="note">המחיר הסופי נקבע לאחר מדידה מקצועית בשטח.</p>
+          <nav>
+            <button type="button" class="button ghost back">חזרה</button
+            ><button type="button" class="button next">המשך ←</button>
+          </nav>
+        </section>
+        <section class="step">
+          <p class="eyebrow">שלב 2 מתוך 4</p>
+          <h2>צלמו את השטח</h2>
+          <p class="sub">
+            העלו תמונה מהנקודה שממנה רואים את כל האזור. נסו לצלם באור יום ולכלול
+            את הרצפה והקירות.
+          </p>
+          <label class="upload-zone" for="spacePhoto"
+            ><span>⌑</span><b>העלאת תמונה</b
+            ><small>JPG, PNG או WEBP · עד 10MB</small
+            ><input
+              id="spacePhoto"
+              name="space_photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+          /></label>
+          <div class="photo-planner hidden" id="photoPlanner">
+            <img id="photoPreview" alt="תצוגה מקדימה של השטח" /><svg
+              id="planOverlay"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            ></svg>
+          </div>
+          <div class="planner-help hidden" id="plannerHelp">
+            <b>סמנו את 4 פינות הפרגולה</b
+            ><span
+              >הקישו על התמונה לפי הסדר. נצייר את אזור התכנון מעל השטח.</span
+            ><button class="text-button" id="resetCorners" type="button">
+              איפוס סימון
+            </button>
+          </div>
+          <nav>
+            <button type="button" class="button ghost back">חזרה</button
+            ><button type="button" class="button next">המשך ←</button>
+          </nav>
+        </section>
+        <section class="step">
+          <p class="eyebrow">שלב 3 מתוך 4</p>
+          <h2>הסגנון שמתאים לכם</h2>
+          <p class="sub">בחרו חומר וקירוי. תמיד אפשר לשנות מול נציג.</p>
+          <fieldset>
+            <legend>סוג הפרגולה</legend>
+            <div class="choices">
+              <label class="choice"
+                ><input
+                  type="radio"
+                  name="pergola_type"
+                  value="aluminum"
+                  checked
+                /><span>◫</span><b>אלומיניום</b
+                ><small>עמיד, נקי ומודרני</small></label
+              >
+              <label class="choice"
+                ><input type="radio" name="pergola_type" value="wood" /><span
+                  >▥</span
+                ><b>עץ</b><small>מראה חם וטבעי</small></label
+              >
+              <label class="choice"
+                ><input
+                  type="radio"
+                  name="pergola_type"
+                  value="bioclimatic"
+                /><span>☰</span><b>ביוקלימטית</b
+                ><small>שלבים מתכווננים</small></label
+              >
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>קירוי</legend>
+            <div class="pills">
+              <label
+                ><input
+                  type="radio"
+                  name="roof_type"
+                  value="slats"
+                  checked
+                /><span>שלבים מתכווננים</span></label
+              >
+              <label
+                ><input
+                  type="radio"
+                  name="roof_type"
+                  value="polycarbonate"
+                /><span>פוליקרבונט</span></label
+              >
+              <label
+                ><input type="radio" name="roof_type" value="fabric" /><span
+                  >בד הצללה</span
+                ></label
+              >
+            </div>
+          </fieldset>
+          <nav>
+            <button type="button" class="button ghost back">חזרה</button
+            ><button type="button" class="button next">המשך ←</button>
+          </nav>
+        </section>
+        <section class="step">
+          <p class="eyebrow">שלב 4 מתוך 4</p>
+          <h2>כמעט סיימנו</h2>
+          <p class="sub">כמה פרטים, ונחזור אליכם עם הצעה מדויקת יותר.</p>
+          <fieldset>
+            <legend>גימור ותוספות</legend>
+            <label class="select-label"
+              >צבע<select name="color">
+                <option>אפור אנתרציט</option>
+                <option>לבן</option>
+                <option>שחור</option>
+                <option>גוון עץ</option>
+              </select></label
+            ><label class="toggle"
+              ><input type="checkbox" name="lighting" /><span></span>אני
+              מעוניין/ת בתאורה מובנית</label
+            >
+          </fieldset>
+          <div class="estimate">
+            <span>איך מקבלים מחיר?</span><b>בעלי עסקים יתמחרו</b
+            ><small
+              >הבקשה תישלח לבעלי מקצוע פעילים. כל אחד יוכל להגיש הצעת מחיר לפי
+              הפרטים והתמונה.</small
+            >
+          </div>
+          <fieldset class="contact">
+            <legend>פרטי קשר</legend>
+            <label>שם מלא<input name="name" required /></label
+            ><label>טלפון<input name="phone" type="tel" required /></label
+            ><label>עיר <input name="city" /></label
+            ><label>אימייל <input name="email" type="email" /></label>
+          </fieldset>
+          <nav>
+            <button type="button" class="button ghost back">חזרה</button
+            ><button type="submit" class="button">קבלו הצעה ראשונית ←</button>
+          </nav>
+        </section>
+      </form>
+      <footer>
+        <a href="{% url 'services' %}">שירותים נוספים</a> ·
+        <a href="{% url 'business_login' %}">כניסה לבעלי עסקים</a><br />הבקשה
+        תועבר לבעלי מקצוע לצורך תמחור.
+      </footer>
+    </main>
+    <script src="{% static 'planner/app.js' %}"></script>
+  </body>
+</html>

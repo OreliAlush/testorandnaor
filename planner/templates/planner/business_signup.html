@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>הרשמת עסק</title>
+    <style>
+      body {
+        background: #182019;
+        color: #f5f1e8;
+        font-family: Arial;
+      }
+      .box {
+        max-width: 500px;
+        margin: 30px auto;
+        padding: 25px;
+        background: #263129;
+        border-radius: 16px;
+      }
+      label {
+        display: block;
+        margin: 12px 0;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px;
+        margin-top: 5px;
+      }
+      .cats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .cats label {
+        background: #182019;
+        padding: 8px;
+        border-radius: 8px;
+      }
+      button {
+        padding: 13px;
+        background: #e9ae50;
+        border: 0;
+        border-radius: 9px;
+        font-weight: bold;
+      }
+      .error {
+        color: #ffb1a1;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="box">
+      <h1>פתיחת חשבון עסקי</h1>
+      {% if error %}
+      <p class="error">{{ error }}</p>
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}<label
+          >שם העסק<input name="business_name" required /></label
+        ><label>אימייל<input type="email" name="email" required /></label
+        ><label>שם משתמש<input name="username" required /></label
+        ><label>סיסמה<input type="password" name="password" required /></label
+        ><b>תחומי שירות</b>
+        <div class="cats">
+          {% for category in categories %}<label
+            ><input
+              type="checkbox"
+              name="categories"
+              value="{{ category.id }}"
+            />
+            {{ category.icon }} {{ category.name }}</label
+          >{% endfor %}
+        </div>
+        <br /><button>פתיחת חשבון</button>
+      </form>
+    </main>
+  </body>
+</html>

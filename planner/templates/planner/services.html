@@ -1,0 +1,31 @@
+{% load static %}<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>שירותים | OrProServices</title>
+    <link rel="stylesheet" href="{% static 'planner/portal.css' %}" />
+  </head>
+  <body class="portal">
+    <main class="shell">
+      <header class="topbar">
+        <a class="logo" href="/">Or<b>ProServices</b></a
+        ><a class="pill" href="{% url 'business_login' %}">כניסת בעלי עסקים</a>
+      </header>
+      <section class="hero">
+        <h1>שירותים לבית ולעסק</h1>
+        <p>בחרו תחום, מלאו בקשה מלאה וקבלו הצעת עבודה.</p>
+      </section>
+      <section class="grid">
+        {% for category in categories %}<a
+          class="card"
+          style="color: inherit; text-decoration: none"
+          href="{% url 'category_request' category.slug %}"
+          ><div style="font-size: 32px">{{ category.icon }}</div>
+          <h2>{{ category.name }}</h2>
+          <p>{{ category.description }}</p></a
+        >{% endfor %}
+      </section>
+    </main>
+  </body>
+</html>
