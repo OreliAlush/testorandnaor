@@ -1,0 +1,6 @@
+# Query: כל הזכויות
+
+1 result - 1 file
+
+pergola_mvp/planner/migrations/0009_editable_content.py:
+  12: ⟪ 589 characters skipped ⟫bose_name="טקסט פתיחה בדף הבית")), ("home_cta", models.CharField(default="לבחירת תחום שירות", max_length=80, verbose_name="טקסט כפתור ראשי")), ("footer_text", models.CharField(default="OrProServices .אתר דמו", max_length=180, verbose_name="טקסט תחתון")), ("experts_title", models.CharField(default="המומחים שלנו והעבודות שלהם.", max_length=180, verbose_name="כותרת דף מומחים")), ("experts_lead", models.TextField(default="הכירו בעלי מקצוע נבחרים והתרשמו מפרויקטים אמיתיים.", verbose_name="טקסט דף מומחים")), ("pergola_title", models.CharField(default="הפרגולה שלכם, מתחילה נכון.", max_length=180, verbose_name="כותרת פרגולות")), ("pergola_lead", models.TextField(default="בחירות, מידות ותמונה—כדי שבעלי המקצוע יבינו בדיוק מה אתם צריכים.", verbose_name="טקסט פרגולות")),
