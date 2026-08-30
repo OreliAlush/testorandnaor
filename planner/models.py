@@ -223,7 +223,7 @@ class SiteSettings(models.Model):
     home_title = models.CharField("כותרת ראשית בדף הבית", max_length=240, default="כל בעל מקצוע. כל פרויקט. במקום אחד.")
     home_lead = models.TextField("טקסט פתיחה בדף הבית", default="שולחים בקשה מדויקת עם בחירות, תמונות ופרטי עבודה—ומקבלים הצעות מבעלי מקצוע.")
     home_cta = models.CharField("טקסט כפתור ראשי", max_length=80, default="לבחירת תחום שירות")
-    footer_text = models.CharField("טקסט תחתון", max_length=180, default="OrProServices .אתר דמו)
+    footer_text = models.CharField("טקסט תחתון", max_length=180, default="OrProServices .אתר דמו")
     experts_title = models.CharField("כותרת דף מומחים", max_length=180, default="המומחים שלנו והעבודות שלהם.")
     experts_lead = models.TextField("טקסט דף מומחים", default="הכירו בעלי מקצוע נבחרים והתרשמו מפרויקטים אמיתיים.")
     pergola_title = models.CharField("כותרת פרגולות", max_length=180, default="הפרגולה שלכם, מתחילה נכון.")
