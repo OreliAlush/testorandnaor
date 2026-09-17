@@ -26,17 +26,36 @@
           >
         </div>
       </nav>
-      <div class="hero-inner">
-        <div>
+      <div class="hero-inner assistant-layout">
+        <div class="assistant-copy">
           <span class="kicker">{{ site.home_kicker }}</span>
-          <h1>{{ site.home_title }}</h1>
-          <p>{{ site.home_lead }}</p>
-          <a class="cta" href="#categories">{{ site.home_cta }} ←</a>
+          <h1>ספרו לנו מה צריך.<br /><em>אנחנו נסדר את השאר.</em></h1>
+          <p>שיחה קצרה במקום טפסים. העוזר אוסף את פרטי הפרויקט, התמונות והמידות — ומעביר אותם לבעלי העסק המתאימים.</p>
+          <p class="assistant-note">ללא התחייבות · בעל העסק מאשר מידות לפני הצעת המחיר</p>
         </div>
-        <div class="visual">
-          <i class="orb one"></i><i class="orb two"></i>
-          <div class="house"></div>
-        </div>
+        <form id="assistant-form" class="assistant-chat" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="service_type" />
+          <input type="hidden" name="style" value="נאסף בשיחה עם OrPro Assist" />
+          <input type="hidden" name="description" />
+          <input type="hidden" name="city" />
+          <input type="hidden" name="address" />
+          <input type="hidden" name="estimated_width" />
+          <input type="hidden" name="estimated_length" />
+          <input type="hidden" name="estimated_height" />
+          <input type="hidden" name="measurement_method" value="מידות שנמסרו בשיחה" />
+          <input type="hidden" name="name" />
+          <input type="hidden" name="phone" />
+          <input type="hidden" name="email" />
+          <div class="assistant-head"><span class="assistant-avatar">OP</span><span><b>OrPro Assist</b><small><i></i> מחובר עכשיו</small></span></div>
+          <div id="assistant-messages" class="assistant-messages" aria-live="polite"></div>
+          <div class="assistant-upload" hidden>
+            <label>📷 צרפו תמונות של השטח<input id="assistant-photos" name="measurement_photos" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple /></label>
+            <small>אפשר לצלם מהטלפון או לבחור תמונות קיימות.</small>
+            <button id="assistant-skip-photo" type="button">אין לי תמונה כרגע</button>
+          </div>
+          <div class="assistant-compose"><input id="assistant-input" type="text" autocomplete="off" placeholder="כתבו כאן..." /><button id="assistant-send" type="button" aria-label="שליחה">↑</button></div>
+        </form>
       </div>
     </section>
     <main>
@@ -76,5 +95,6 @@
       </section>
     </main>
     <footer class="footer">{{ site.footer_text }}</footer>
+    <script src="{% static 'planner/home_assistant.js' %}"></script>
   </body>
 </html>
