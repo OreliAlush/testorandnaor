@@ -8,6 +8,13 @@
   const upload = document.querySelector(".assistant-upload");
   const photos = document.querySelector("#assistant-photos");
   const skipPhoto = document.querySelector("#assistant-skip-photo");
+  const arStart = document.querySelector("#assistant-ar-start");
+  const arScreen = document.querySelector("#ar-measurement");
+  const arCanvas = document.querySelector("#ar-canvas");
+  const arStatus = document.querySelector("#ar-status");
+  const arClose = document.querySelector("#ar-close");
+  const arActions = document.querySelector("#ar-result-actions");
+  const arReset = document.querySelector("#ar-reset");
   const data = {};
   const questions = [
     ["project", "היי, אני OrPro Assist 👋 ספרו לי במילים שלכם: מה תרצו לעשות בבית?", "למשל: אני רוצה פרגולה בחצר, יש נזילה במטבח..."],
@@ -99,6 +106,77 @@
     addMessage("אין לי תמונות כרגע", "customer");
     step += 1;
     ask();
+  });
+
+  let arSession;
+  let arPoints = [];
+  let arPosition;
+  const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+  const stopAR = async () => {
+    if (arSession) await arSession.end();
+    arSession = null;
+    arScreen.hidden = true;
+  };
+  const resetAR = () => {
+    arPoints = [];
+    arActions.hidden = true;
+    arStatus.textContent = "כוונו למשטח ולחצו על שתי נקודות למדידה.";
+  };
+  const startAR = async () => {
+    if (!navigator.xr) {
+      addMessage("מדידת AR אינה נתמכת בדפדפן הזה. אפשר לצלם עם דף A4 ולהזין מידה משוערת.", "bot");
+      return;
+    }
+    try {
+      const supported = await navigator.xr.isSessionSupported("immersive-ar");
+      if (!supported) throw new Error("unsupported");
+      arScreen.hidden = false;
+      const gl = arCanvas.getContext("webgl", { xrCompatible: true });
+      arSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test", "local-floor"] });
+      await gl.makeXRCompatible();
+      arSession.updateRenderState({ baseLayer: new XRWebGLLayer(arSession, gl) });
+      const referenceSpace = await arSession.requestReferenceSpace("local-floor");
+      const viewerSpace = await arSession.requestReferenceSpace("viewer");
+      const hitTestSource = await arSession.requestHitTestSource({ space: viewerSpace });
+      arSession.addEventListener("end", () => { arScreen.hidden = true; arSession = null; });
+      arSession.addEventListener("select", () => {
+        if (!arPosition || arPoints.length === 2) return;
+        arPoints.push({ ...arPosition });
+        if (arPoints.length === 1) arStatus.textContent = "נקודה ראשונה נשמרה. לחצו על נקודת הסיום.";
+        if (arPoints.length === 2) {
+          const meters = distance(arPoints[0], arPoints[1]).toFixed(2);
+          arStatus.textContent = `נמדדו ${meters} מטרים. לאיזו מידה לשמור?`;
+          arActions.hidden = false;
+        }
+      });
+      const frameLoop = (_, frame) => {
+        arSession.requestAnimationFrame(frameLoop);
+        const baseLayer = arSession.renderState.baseLayer;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, baseLayer.framebuffer);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        const hits = frame.getHitTestResults(hitTestSource);
+        if (hits.length) {
+          const pose = hits[0].getPose(referenceSpace);
+          arPosition = pose.transform.position;
+        }
+      };
+      arSession.requestAnimationFrame(frameLoop);
+    } catch (_) {
+      arScreen.hidden = true;
+      addMessage("לא ניתן לפתוח AR במכשיר הזה. נסו Chrome במכשיר Android או השתמשו בצילום עם דף A4.", "bot");
+    }
+  };
+  arStart.addEventListener("click", startAR);
+  arClose.addEventListener("click", stopAR);
+  arReset.addEventListener("click", resetAR);
+  document.querySelectorAll("[data-ar-dimension]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const meters = distance(arPoints[0], arPoints[1]).toFixed(2);
+      data[button.dataset.arDimension] = meters;
+      addMessage(`מדידת AR נשמרה: ${button.dataset.arDimension === "width" ? "רוחב" : "אורך"} ${meters} מ׳`, "customer");
+      await stopAR();
+    });
   });
   ask();
 })();

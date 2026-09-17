@@ -52,10 +52,24 @@
           <div class="assistant-upload" hidden>
             <label>📷 צרפו תמונות של השטח<input id="assistant-photos" name="measurement_photos" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple /></label>
             <small>אפשר לצלם מהטלפון או לבחור תמונות קיימות.</small>
+            <button id="assistant-ar-start" class="assistant-ar-start" type="button">📐 מדידה דרך מצלמת AR</button>
             <button id="assistant-skip-photo" type="button">אין לי תמונה כרגע</button>
           </div>
           <div class="assistant-compose"><input id="assistant-input" type="text" autocomplete="off" placeholder="כתבו כאן..." /><button id="assistant-send" type="button" aria-label="שליחה">↑</button></div>
         </form>
+      </div>
+    </section>
+    <section id="ar-measurement" class="ar-measurement" hidden>
+      <canvas id="ar-canvas"></canvas>
+      <div class="ar-panel">
+        <span class="assistant-avatar">OP</span>
+        <div><b>מדידת AR</b><p id="ar-status">כוונו למשטח ולחצו על שתי נקודות למדידה.</p></div>
+        <button id="ar-close" type="button">סיום</button>
+      </div>
+      <div id="ar-result-actions" class="ar-result-actions" hidden>
+        <button data-ar-dimension="width" type="button">שמור כרוחב</button>
+        <button data-ar-dimension="length" type="button">שמור כאורך</button>
+        <button id="ar-reset" type="button">מדידה חדשה</button>
       </div>
     </section>
     <main>
