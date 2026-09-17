@@ -53,6 +53,7 @@
             <label>📷 צרפו תמונות של השטח<input id="assistant-photos" name="measurement_photos" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple /></label>
             <small>אפשר לצלם מהטלפון או לבחור תמונות קיימות.</small>
             <button id="assistant-ar-start" class="assistant-ar-start" type="button">📐 מדידה דרך מצלמת AR</button>
+            <button id="assistant-a4-start" class="assistant-ar-start" type="button">📄 מדידה מצילום עם דף A4</button>
             <button id="assistant-skip-photo" type="button">אין לי תמונה כרגע</button>
           </div>
           <div class="assistant-compose"><input id="assistant-input" type="text" autocomplete="off" placeholder="כתבו כאן..." /><button id="assistant-send" type="button" aria-label="שליחה">↑</button></div>
@@ -70,6 +71,15 @@
         <button data-ar-dimension="width" type="button">שמור כרוחב</button>
         <button data-ar-dimension="length" type="button">שמור כאורך</button>
         <button id="ar-reset" type="button">מדידה חדשה</button>
+      </div>
+    </section>
+    <section id="a4-measurement" class="a4-measurement" hidden>
+      <div class="a4-card">
+        <div class="a4-head"><span class="assistant-avatar">OP</span><div><b>מדידה בעזרת דף A4</b><p id="a4-status">צלמו את השטח כשדף A4 מונח על אותו משטח שאותו מודדים.</p></div><button id="a4-close" type="button">×</button></div>
+        <input id="a4-photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" />
+        <canvas id="a4-canvas" hidden></canvas>
+        <div id="a4-actions" class="a4-actions" hidden><button data-a4-dimension="width" type="button">שמור כרוחב</button><button data-a4-dimension="length" type="button">שמור כאורך</button><button id="a4-reset" type="button">התחל מחדש</button></div>
+        <p class="a4-note">חשוב: דף ה־A4 ושתי נקודות המדידה חייבים להיות על אותו מישור. המידה היא הערכה שדורשת אישור של בעל העסק.</p>
       </div>
     </section>
     <main>

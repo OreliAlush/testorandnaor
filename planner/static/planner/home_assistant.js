@@ -15,6 +15,14 @@
   const arClose = document.querySelector("#ar-close");
   const arActions = document.querySelector("#ar-result-actions");
   const arReset = document.querySelector("#ar-reset");
+  const a4Start = document.querySelector("#assistant-a4-start");
+  const a4Screen = document.querySelector("#a4-measurement");
+  const a4Close = document.querySelector("#a4-close");
+  const a4Photo = document.querySelector("#a4-photo");
+  const a4Canvas = document.querySelector("#a4-canvas");
+  const a4Status = document.querySelector("#a4-status");
+  const a4Actions = document.querySelector("#a4-actions");
+  const a4Reset = document.querySelector("#a4-reset");
   const data = {};
   const questions = [
     ["project", "היי, אני OrPro Assist 👋 ספרו לי במילים שלכם: מה תרצו לעשות בבית?", "למשל: אני רוצה פרגולה בחצר, יש נזילה במטבח..."],
@@ -176,6 +184,117 @@
       data[button.dataset.arDimension] = meters;
       addMessage(`מדידת AR נשמרה: ${button.dataset.arDimension === "width" ? "רוחב" : "אורך"} ${meters} מ׳`, "customer");
       await stopAR();
+    });
+  });
+
+  let a4Points = [];
+  let measurePoints = [];
+  let a4Homography;
+  let a4Image;
+  const solve = (matrix, values) => {
+    const size = values.length;
+    const augmented = matrix.map((row, index) => [...row, values[index]]);
+    for (let pivot = 0; pivot < size; pivot += 1) {
+      let best = pivot;
+      for (let row = pivot + 1; row < size; row += 1) if (Math.abs(augmented[row][pivot]) > Math.abs(augmented[best][pivot])) best = row;
+      [augmented[pivot], augmented[best]] = [augmented[best], augmented[pivot]];
+      const divisor = augmented[pivot][pivot];
+      if (Math.abs(divisor) < 0.000001) return null;
+      for (let col = pivot; col <= size; col += 1) augmented[pivot][col] /= divisor;
+      for (let row = 0; row < size; row += 1) {
+        if (row === pivot) continue;
+        const factor = augmented[row][pivot];
+        for (let col = pivot; col <= size; col += 1) augmented[row][col] -= factor * augmented[pivot][col];
+      }
+    }
+    return augmented.map((row) => row[size]);
+  };
+  const makeHomography = (source) => {
+    const target = [[0.21, 0.297], [0, 0.297], [0, 0], [0.21, 0]];
+    const matrix = [];
+    const values = [];
+    source.forEach(([x, y], index) => {
+      const [X, Y] = target[index];
+      matrix.push([x, y, 1, 0, 0, 0, -X * x, -X * y]); values.push(X);
+      matrix.push([0, 0, 0, x, y, 1, -Y * x, -Y * y]); values.push(Y);
+    });
+    return solve(matrix, values);
+  };
+  const mapA4Point = ([x, y]) => {
+    const h = a4Homography;
+    const denominator = h[6] * x + h[7] * y + 1;
+    return [(h[0] * x + h[1] * y + h[2]) / denominator, (h[3] * x + h[4] * y + h[5]) / denominator];
+  };
+  const drawA4 = () => {
+    if (!a4Image) return;
+    const context = a4Canvas.getContext("2d");
+    const ratio = Math.min(1, 700 / a4Image.naturalWidth);
+    a4Canvas.width = Math.round(a4Image.naturalWidth * ratio);
+    a4Canvas.height = Math.round(a4Image.naturalHeight * ratio);
+    context.drawImage(a4Image, 0, 0, a4Canvas.width, a4Canvas.height);
+    context.lineWidth = 4;
+    [...a4Points, ...measurePoints].forEach(([x, y], index) => {
+      context.beginPath(); context.arc(x, y, 8, 0, Math.PI * 2);
+      context.fillStyle = index < 4 ? "#edb75c" : "#6be19a"; context.fill();
+    });
+    if (a4Points.length === 4) {
+      context.beginPath(); a4Points.forEach(([x, y], index) => index ? context.lineTo(x, y) : context.moveTo(x, y)); context.closePath(); context.strokeStyle = "#edb75c"; context.stroke();
+    }
+    if (measurePoints.length === 2) {
+      context.beginPath(); context.moveTo(...measurePoints[0]); context.lineTo(...measurePoints[1]); context.strokeStyle = "#6be19a"; context.stroke();
+    }
+  };
+  const resetA4 = () => {
+    a4Points = []; measurePoints = []; a4Homography = null; a4Actions.hidden = true;
+    a4Status.textContent = "סמנו את ארבע פינות דף ה־A4 לפי הסדר: ימין־למטה, שמאל־למטה, שמאל־למעלה, ימין־למעלה.";
+    drawA4();
+  };
+  a4Start.addEventListener("click", () => { a4Screen.hidden = false; });
+  a4Close.addEventListener("click", () => { a4Screen.hidden = true; });
+  a4Reset.addEventListener("click", resetA4);
+  a4Photo.addEventListener("change", () => {
+    const file = a4Photo.files[0]; if (!file) return;
+    const files = new DataTransfer();
+    [...photos.files, file].forEach((image) => files.items.add(image));
+    photos.files = files.files;
+    a4Image = new Image();
+    a4Image.onload = resetA4;
+    a4Image.src = URL.createObjectURL(file);
+    a4Canvas.hidden = false;
+  });
+  a4Canvas.addEventListener("click", (event) => {
+    if (!a4Image) return;
+    const box = a4Canvas.getBoundingClientRect();
+    const point = [(event.clientX - box.left) * (a4Canvas.width / box.width), (event.clientY - box.top) * (a4Canvas.height / box.height)];
+    if (a4Points.length < 4) {
+      a4Points.push(point);
+      if (a4Points.length === 4) {
+        a4Homography = makeHomography(a4Points);
+        if (!a4Homography) { resetA4(); return; }
+        a4Status.textContent = "עכשיו לחצו על נקודת ההתחלה ועל נקודת הסיום של מה שתרצו למדוד.";
+      }
+    } else if (measurePoints.length < 2) {
+      measurePoints.push(point);
+      if (measurePoints.length === 2) {
+        const start = mapA4Point(measurePoints[0]); const end = mapA4Point(measurePoints[1]);
+        const meters = Math.hypot(start[0] - end[0], start[1] - end[1]).toFixed(2);
+        a4Status.textContent = `נמדדו ${meters} מטרים. לאיזו מידה לשמור?`;
+        a4Actions.dataset.meters = meters; a4Actions.hidden = false;
+      }
+    }
+    drawA4();
+  });
+  document.querySelectorAll("[data-a4-dimension]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const meters = a4Actions.dataset.meters;
+      data[button.dataset.a4Dimension] = meters;
+      addMessage(`מדידה מצילום A4 נשמרה: ${button.dataset.a4Dimension === "width" ? "רוחב" : "אורך"} ${meters} מ׳`, "customer");
+      a4Screen.hidden = true;
+      if (questions[step][0] === "photos") {
+        addMessage("צירפתי תמונת מדידה עם דף A4", "customer");
+        step += 1;
+        ask();
+      }
     });
   });
   ask();
