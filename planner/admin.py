@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.core.mail import send_mail
 from django.urls import reverse
 from .forms import BusinessAdminForm
-from .models import Business, BusinessOffer, ClientRequestLink, ContentPage, DirectOffer, ExpertProfile, GeneralOffer, GeneralRequest, PortfolioProject, QuoteInvitation, QuoteRequest, ServiceCategory, ServiceRequest, SiteSettings
+from .models import Business, BusinessOffer, ClientRequestLink, ContentPage, DirectOffer, ExpertProfile, GeneralOffer, GeneralRequest, MeasurementImage, PortfolioProject, QuoteInvitation, QuoteRequest, ServiceCategory, ServiceRequest, SiteSettings
 
 
 class InvitationInline(admin.TabularInline):
@@ -76,12 +76,20 @@ class ClientRequestLinkAdmin(admin.ModelAdmin):
     list_filter = ("category", "is_active")
 
 
+class ServiceMeasurementImageInline(admin.TabularInline):
+    model = MeasurementImage
+    fk_name = "service_request"
+    extra = 0
+    readonly_fields = ("created_at",)
+
+
 @admin.register(ServiceRequest)
 class ServiceRequestAdmin(admin.ModelAdmin):
     list_display = ("name", "phone", "category", "business", "urgency", "status", "created_at")
     list_filter = ("status", "link__category")
     search_fields = ("name", "phone", "city")
     readonly_fields = ("configuration",)
+    inlines = (ServiceMeasurementImageInline,)
 
     @admin.display(description="קטגוריה")
     def category(self, obj):
@@ -94,7 +102,7 @@ class ServiceRequestAdmin(admin.ModelAdmin):
 
 @admin.register(DirectOffer)
 class DirectOfferAdmin(admin.ModelAdmin):
-    list_display = ("request", "price", "created_at")
+    list_display = ("request", "price", "status", "created_at")
 
 
 class PortfolioProjectInline(admin.TabularInline):
@@ -128,18 +136,25 @@ class GeneralOfferInline(admin.TabularInline):
     readonly_fields = ("created_at",)
 
 
+class GeneralMeasurementImageInline(admin.TabularInline):
+    model = MeasurementImage
+    fk_name = "general_request"
+    extra = 0
+    readonly_fields = ("created_at",)
+
+
 @admin.register(GeneralRequest)
 class GeneralRequestAdmin(admin.ModelAdmin):
     list_display = ("name", "category", "city", "status", "awarded_business", "created_at")
     list_filter = ("category", "status", "urgency")
     search_fields = ("name", "phone", "city")
     filter_horizontal = ("invited_businesses",)
-    inlines = (GeneralOfferInline,)
+    inlines = (GeneralMeasurementImageInline, GeneralOfferInline)
 
 
 @admin.register(GeneralOffer)
 class GeneralOfferAdmin(admin.ModelAdmin):
-    list_display = ("request", "business", "price", "created_at")
+    list_display = ("request", "business", "price", "status", "created_at")
     list_filter = ("business",)
 
 

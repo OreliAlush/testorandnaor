@@ -81,11 +81,25 @@
             required
           ></textarea></label
         ><label
-          >תמונות מהשטח<input
+          >📷 צלמו את השטח<input
             name="photo"
             type="file"
-            accept="image/jpeg,image/png,image/webp" /></label
-        ><button>שליחת בקשה ל־{{ link.business.name }} ←</button>
+            accept="image/jpeg,image/png,image/webp"
+            capture="environment" /></label
+        ><label
+          >תמונות נוספות למדידה<input
+            name="measurement_photos"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple /></label
+        ><div class="grid">
+          <label>רוחב משוער במטרים<input name="estimated_width" type="number" step="0.01" min="0" /></label>
+          <label>אורך / עומק משוער במטרים<input name="estimated_length" type="number" step="0.01" min="0" /></label>
+          <label>גובה משוער במטרים<input name="estimated_height" type="number" step="0.01" min="0" /></label>
+          <label>איך נמדד?<select name="measurement_method"><option>צילום והערכה ראשונית</option><option>צילום עם דף A4 / מידה ידועה</option><option>מדידה ידנית</option></select></label>
+        </div>
+        <p class="muted">המידות והתמונות יישלחו לבעל העסק לבדיקה לפני הצעת המחיר.</p>
+        <button>שליחת בקשה ל־{{ link.business.name }} ←</button>
       </form>
     </main>
   </body>

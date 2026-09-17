@@ -51,11 +51,24 @@
       {% endif %}{% if error %}
       <p class="error">{{ error }}</p>
       {% endif %}
-      <form method="post">
+      <section>
+        <h2>מדידות ותמונות מהלקוח</h2>
+        <p>שיטה: {{ service_request.measurement_method|default:"לא צוינה" }} · {{ service_request.measurement_confidence }}</p>
+        <p>מידות משוערות: רוחב {{ service_request.estimated_width|default:"—" }} מ׳ · אורך {{ service_request.estimated_length|default:"—" }} מ׳ · גובה {{ service_request.estimated_height|default:"—" }} מ׳</p>
+        {% for image in service_request.measurement_images.all %}
+        <p><a href="{{ image.image.url }}" target="_blank">פתיחת תמונת מדידה נוספת</a></p>
+        {% empty %}<p>לא הועלו תמונות נוספות.</p>{% endfor %}
+      </section>
+      <form method="post" enctype="multipart/form-data">
         {% csrf_token %}<label>מחיר כולל בש״ח</label
         ><input type="number" name="price" min="1" required /><label
           >הודעה ללקוח</label
-        ><textarea name="message" rows="5"></textarea
+        ><textarea name="message" rows="5"></textarea><h2>אישור מדידות והדמיה</h2>
+        <p>המידות שייכנסו להצעה ללקוח. השאירו ריק אם טרם אימתתם אותן.</p>
+        <label>רוחב מאושר במטרים</label><input name="confirmed_width" type="number" step="0.01" min="0" value="{{ service_request.estimated_width|default_if_none:'' }}" />
+        <label>אורך מאושר במטרים</label><input name="confirmed_length" type="number" step="0.01" min="0" value="{{ service_request.estimated_length|default_if_none:'' }}" />
+        <label>גובה מאושר במטרים</label><input name="confirmed_height" type="number" step="0.01" min="0" value="{{ service_request.estimated_height|default_if_none:'' }}" />
+        <label>הדמיה ללקוח (תמונה)</label><input name="visualization" type="file" accept="image/jpeg,image/png,image/webp" />
         ><button>שמירת הצעת המחיר</button>
       </form>
     </main>

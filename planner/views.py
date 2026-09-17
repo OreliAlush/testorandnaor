@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from .models import Business, BusinessOffer, ClientRequestLink, ContentPage, DirectOffer, ExpertProfile, GeneralOffer, GeneralRequest, QuoteInvitation, QuoteRequest, ServiceCategory, ServiceRequest, SiteSettings
+from .models import Business, BusinessOffer, ClientRequestLink, ContentPage, DirectOffer, ExpertProfile, GeneralOffer, GeneralRequest, MeasurementImage, QuoteInvitation, QuoteRequest, ServiceCategory, ServiceRequest, SiteSettings
 
 
 def site_settings():
@@ -140,7 +140,8 @@ def client_request(request, token):
         photo = request.FILES.get("photo")
         if photo and (photo.size > 10 * 1024 * 1024 or photo.content_type not in {"image/jpeg", "image/png", "image/webp"}):
             return render(request, "planner/client_request.html", {"link": link, "options": options, "error": "נא להעלות תמונת JPG, PNG או WEBP עד 10MB."})
-        ServiceRequest.objects.create(link=link, name=request.POST["name"], phone=request.POST["phone"], email=request.POST.get("email", ""), city=request.POST.get("city", ""), address=request.POST.get("address", ""), description=request.POST["description"], work_area=request.POST.get("work_area") or None, budget=request.POST.get("budget") or None, preferred_date=request.POST.get("preferred_date") or None, urgency=request.POST.get("urgency", "רגיל"), configuration=request_configuration(request), photo=photo)
+        service_request = ServiceRequest.objects.create(link=link, name=request.POST["name"], phone=request.POST["phone"], email=request.POST.get("email", ""), city=request.POST.get("city", ""), address=request.POST.get("address", ""), description=request.POST["description"], work_area=request.POST.get("work_area") or None, budget=request.POST.get("budget") or None, preferred_date=request.POST.get("preferred_date") or None, urgency=request.POST.get("urgency", "רגיל"), configuration=request_configuration(request), photo=photo, **measurement_data(request))
+        save_measurement_images(request, service_request=service_request)
         return render(request, "planner/client_request_done.html", {"business": link.business})
     return render(request, "planner/client_request.html", {"link": link, "options": options})
 
@@ -164,6 +165,30 @@ def request_configuration(request):
     return json.dumps({"סוג עבודה": request.POST.get("service_type", ""), "סגנון/פתרון": request.POST.get("style", ""), "תוספות": request.POST.getlist("extras")}, ensure_ascii=False)
 
 
+def measurement_data(request):
+    return {
+        "estimated_width": request.POST.get("estimated_width") or None,
+        "estimated_length": request.POST.get("estimated_length") or None,
+        "estimated_height": request.POST.get("estimated_height") or None,
+        "measurement_method": request.POST.get("measurement_method", "צילום והזנה ידנית"),
+        "measurement_confidence": "הערכה ראשונית לפי תמונות",
+    }
+
+
+def save_measurement_images(request, **relations):
+    for image in request.FILES.getlist("measurement_photos"):
+        if image.content_type in {"image/jpeg", "image/png", "image/webp"} and image.size <= 10 * 1024 * 1024:
+            MeasurementImage.objects.create(image=image, **relations)
+
+
+def offer_measurements(request):
+    return {
+        "confirmed_width": request.POST.get("confirmed_width") or None,
+        "confirmed_length": request.POST.get("confirmed_length") or None,
+        "confirmed_height": request.POST.get("confirmed_height") or None,
+    }
+
+
 def category_request(request, slug):
     category = get_object_or_404(ServiceCategory, slug=slug, is_active=True)
     tips = {
@@ -179,7 +204,8 @@ def category_request(request, slug):
         photo = request.FILES.get("photo")
         if photo and (photo.size > 10 * 1024 * 1024 or photo.content_type not in {"image/jpeg", "image/png", "image/webp"}):
             return render(request, "planner/category_request.html", {"category": category, "tip": tip, "options": options, "error": "נא להעלות תמונת JPG, PNG או WEBP עד 10MB."})
-        GeneralRequest.objects.create(category=category, name=request.POST["name"], phone=request.POST["phone"], email=request.POST.get("email", ""), city=request.POST.get("city", ""), address=request.POST.get("address", ""), description=request.POST["description"], work_area=request.POST.get("work_area") or None, budget=request.POST.get("budget") or None, preferred_date=request.POST.get("preferred_date") or None, urgency=request.POST.get("urgency", "רגיל"), configuration=request_configuration(request), photo=photo)
+        general_request = GeneralRequest.objects.create(category=category, name=request.POST["name"], phone=request.POST["phone"], email=request.POST.get("email", ""), city=request.POST.get("city", ""), address=request.POST.get("address", ""), description=request.POST["description"], work_area=request.POST.get("work_area") or None, budget=request.POST.get("budget") or None, preferred_date=request.POST.get("preferred_date") or None, urgency=request.POST.get("urgency", "רגיל"), configuration=request_configuration(request), photo=photo, **measurement_data(request))
+        save_measurement_images(request, general_request=general_request)
         count = Business.objects.filter(is_active=True, categories=category).distinct().count()
         return render(request, "planner/category_request_done.html", {"category": category, "count": count})
     return render(request, "planner/category_request.html", {"category": category, "tip": tip, "options": options})
@@ -196,7 +222,18 @@ def business_request(request, pk):
                 raise ValueError
         except (KeyError, ValueError):
             return render(request, "planner/business_request.html", {"service_request": service_request, "error": "נא להזין מחיר תקין."})
-        offer, _ = DirectOffer.objects.update_or_create(request=service_request, defaults={"price": price, "message": request.POST.get("message", ""), "status": "הצעה נשלחה"})
+        defaults = {
+            "price": price,
+            "message": request.POST.get("message", ""),
+            "status": "הצעה נשלחה",
+            **offer_measurements(request),
+        }
+        if visualization := request.FILES.get("visualization"):
+            defaults["visualization"] = visualization
+        offer, _ = DirectOffer.objects.update_or_create(
+            request=service_request,
+            defaults=defaults,
+        )
         service_request.status = "הצעה נשלחה"
         service_request.save(update_fields=["status"])
         send_customer_offer_email(request, offer, False)
@@ -218,7 +255,19 @@ def general_offer(request, pk):
                 raise ValueError
         except (KeyError, ValueError):
             return render(request, "planner/general_offer.html", {"general_request": general_request, "error": "נא להזין מחיר תקין."})
-        offer, _ = GeneralOffer.objects.update_or_create(request=general_request, business=business, defaults={"price": price, "message": request.POST.get("message", ""), "status": "הצעה נשלחה"})
+        defaults = {
+            "price": price,
+            "message": request.POST.get("message", ""),
+            "status": "הצעה נשלחה",
+            **offer_measurements(request),
+        }
+        if visualization := request.FILES.get("visualization"):
+            defaults["visualization"] = visualization
+        offer, _ = GeneralOffer.objects.update_or_create(
+            request=general_request,
+            business=business,
+            defaults=defaults,
+        )
         send_customer_offer_email(request, offer, True)
         return redirect("business_dashboard")
     return render(request, "planner/general_offer.html", {"general_request": general_request})

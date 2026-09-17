@@ -19,6 +19,14 @@
         <p style="white-space: pre-line">
           {{ offer.message|default:"פרטי ההצעה נמסרו על ידי בעל העסק." }}
         </p>
+        {% if offer.confirmed_width or offer.confirmed_length or offer.confirmed_height %}
+        <h2>מידות שאושרו על ידי בעל העסק</h2>
+        <p>רוחב {{ offer.confirmed_width|default:"—" }} מ׳ · אורך {{ offer.confirmed_length|default:"—" }} מ׳ · גובה {{ offer.confirmed_height|default:"—" }} מ׳</p>
+        {% endif %}
+        {% if offer.visualization %}
+        <h2>הדמיה</h2>
+        <img src="{{ offer.visualization.url }}" alt="הדמיית הפרויקט" style="width:100%; border-radius:16px" />
+        {% endif %}
         <hr style="border-color: #405444" />
         <h2>יצירת קשר</h2>
         <p>

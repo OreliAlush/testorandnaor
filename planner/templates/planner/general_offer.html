@@ -29,12 +29,20 @@
           target="_blank"
           >פתיחת תמונה</a
         >{% endif %}
+        <section class="card">
+          <h2>מדידות ותמונות מהלקוח</h2>
+          <p>שיטה: {{ general_request.measurement_method|default:"לא צוינה" }} · {{ general_request.measurement_confidence }}</p>
+          <p>מידות משוערות: רוחב {{ general_request.estimated_width|default:"—" }} מ׳ · אורך {{ general_request.estimated_length|default:"—" }} מ׳ · גובה {{ general_request.estimated_height|default:"—" }} מ׳</p>
+          {% for image in general_request.measurement_images.all %}
+          <p><a href="{{ image.image.url }}" target="_blank">פתיחת תמונת מדידה נוספת</a></p>
+          {% empty %}<p class="muted">לא הועלו תמונות נוספות.</p>{% endfor %}
+        </section>
       </section>
       <section class="card">
         {% if error %}
         <p class="error">{{ error }}</p>
         {% endif %}
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
           {% csrf_token %}<label
             >מחיר כולל בש״ח<input
               type="number"
@@ -47,6 +55,14 @@
               rows="6"
               placeholder="מה כלול בהצעה, לוח זמנים, אחריות וכו׳"
             ></textarea></label
+          ><h2>אישור מדידות והדמיה</h2>
+          <p class="muted">המידות המאושרות וההדמיה יוצגו ללקוח יחד עם ההצעה.</p>
+          <div class="grid">
+            <label>רוחב מאושר במטרים<input name="confirmed_width" type="number" step="0.01" min="0" value="{{ general_request.estimated_width|default_if_none:'' }}" /></label>
+            <label>אורך מאושר במטרים<input name="confirmed_length" type="number" step="0.01" min="0" value="{{ general_request.estimated_length|default_if_none:'' }}" /></label>
+            <label>גובה מאושר במטרים<input name="confirmed_height" type="number" step="0.01" min="0" value="{{ general_request.estimated_height|default_if_none:'' }}" /></label>
+          </div>
+          <label>הדמיה ללקוח (תמונה)<input name="visualization" type="file" accept="image/jpeg,image/png,image/webp" /></label>
           ><button>שליחת הצעת מחיר</button>
         </form>
       </section>

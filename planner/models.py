@@ -94,6 +94,11 @@ class ServiceRequest(models.Model):
     urgency = models.CharField("דחיפות", max_length=20, default="רגיל")
     configuration = models.TextField("בחירות ותוספות", blank=True)
     photo = models.FileField(upload_to="service-requests/%Y/%m/", blank=True)
+    estimated_width = models.DecimalField("רוחב משוער במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    estimated_length = models.DecimalField("אורך משוער במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    estimated_height = models.DecimalField("גובה משוער במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    measurement_method = models.CharField("שיטת מדידה", max_length=50, blank=True)
+    measurement_confidence = models.CharField("רמת ביטחון", max_length=50, default="הערכה ראשונית")
     status = models.CharField(max_length=30, default="בקשה חדשה")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -110,6 +115,10 @@ class DirectOffer(models.Model):
     request = models.OneToOneField(ServiceRequest, on_delete=models.CASCADE, related_name="direct_offer")
     price = models.PositiveIntegerField()
     message = models.TextField(blank=True)
+    confirmed_width = models.DecimalField("רוחב מאושר במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    confirmed_length = models.DecimalField("אורך מאושר במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    confirmed_height = models.DecimalField("גובה מאושר במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    visualization = models.FileField("הדמיה ללקוח", upload_to="visualizations/%Y/%m/", blank=True)
     token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     status = models.CharField(max_length=20, default="הצעה נשלחה")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -188,6 +197,11 @@ class GeneralRequest(models.Model):
     urgency = models.CharField(max_length=20, default="רגיל")
     configuration = models.TextField(blank=True)
     photo = models.FileField(upload_to="general-requests/%Y/%m/", blank=True)
+    estimated_width = models.DecimalField("רוחב משוער במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    estimated_length = models.DecimalField("אורך משוער במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    estimated_height = models.DecimalField("גובה משוער במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    measurement_method = models.CharField("שיטת מדידה", max_length=50, blank=True)
+    measurement_confidence = models.CharField("רמת ביטחון", max_length=50, default="הערכה ראשונית")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
     invited_businesses = models.ManyToManyField(Business, blank=True, related_name="assigned_general_requests", verbose_name="עסקים שנבחרו")
     awarded_business = models.ForeignKey(Business, null=True, blank=True, on_delete=models.SET_NULL, related_name="won_general_requests", verbose_name="העסק שנבחר")
@@ -207,6 +221,10 @@ class GeneralOffer(models.Model):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="general_offers")
     price = models.PositiveIntegerField()
     message = models.TextField(blank=True)
+    confirmed_width = models.DecimalField("רוחב מאושר במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    confirmed_length = models.DecimalField("אורך מאושר במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    confirmed_height = models.DecimalField("גובה מאושר במטרים", max_digits=6, decimal_places=2, null=True, blank=True)
+    visualization = models.FileField("הדמיה ללקוח", upload_to="visualizations/%Y/%m/", blank=True)
     token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     status = models.CharField(max_length=20, default="הצעה נשלחה")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -215,6 +233,17 @@ class GeneralOffer(models.Model):
         verbose_name = "הצעה לבקשה כללית"
         verbose_name_plural = "הצעות לבקשות כלליות"
         constraints = [models.UniqueConstraint(fields=["request", "business"], name="one_general_offer_per_business")]
+
+
+class MeasurementImage(models.Model):
+    general_request = models.ForeignKey(GeneralRequest, on_delete=models.CASCADE, related_name="measurement_images", null=True, blank=True)
+    service_request = models.ForeignKey(ServiceRequest, on_delete=models.CASCADE, related_name="measurement_images", null=True, blank=True)
+    image = models.FileField("תמונת מדידה", upload_to="measurements/%Y/%m/")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "תמונת מדידה"
+        verbose_name_plural = "תמונות מדידה"
 
 
 class SiteSettings(models.Model):
