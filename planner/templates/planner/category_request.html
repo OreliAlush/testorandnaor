@@ -19,9 +19,9 @@
         ><span class="pill">{{ category.icon }} {{ category.name }}</span>
       </header>
       <section class="hero">
-        <p class="pill">מתכנן פרויקט</p>
-        <h1>בואו נתכנן לפני שמבקשים הצעה.</h1>
-        <p>{{ tip }}</p>
+        <p class="pill">OrPro Assist · מתכנן הפרויקט שלך</p>
+        <h1>לא צריך לדעת מאיפה להתחיל.</h1>
+        <p>העוזר שלנו ישאל כמה שאלות קצרות, יאסוף צילום ומידות, ויכין בקשה מסודרת לבעלי המקצוע.</p>
       </section>
       {% if error %}
       <p class="error">{{ error }}</p>
@@ -32,9 +32,16 @@
         class="card service-wizard"
       >
         {% csrf_token %}
-        <div class="wizard-progress"><i class="on"></i><i></i><i></i></div>
-        <section class="step active">
-          <span class="pill">שלב 1 מתוך 3</span>
+        <div class="bot-topline"><span class="bot-avatar">OP</span><span><b>OrPro Assist</b><small>מחובר ועוזר לך עכשיו</small></span></div>
+        <div class="wizard-progress"><i class="on"></i><i></i><i></i><i></i></div>
+        <section class="step active bot-welcome">
+          <div class="chat-message bot-message"><span class="bot-avatar">OP</span><div><b>היי, נעים להכיר 👋</b><p>אני אעזור לך להכין בקשה מדויקת ל{{ category.name }}. זה לוקח בערך שתי דקות.</p></div></div>
+          <div class="chat-message bot-message"><span class="bot-avatar">OP</span><div><b>איך זה עובד?</b><p>נבחר יחד את סוג העבודה, נצלם את השטח ונאסוף מידות משוערות. בעל העסק בודק הכל לפני הצעת המחיר.</p></div></div>
+          <button type="button" class="wizard-next bot-start">בואו נתחיל ←</button>
+        </section>
+        <section class="step">
+          <span class="pill">שאלה 1 מתוך 3</span>
+          <div class="chat-message bot-message"><span class="bot-avatar">OP</span><div><b>מעולה, בואו נבין את הפרויקט.</b><p>{{ tip }}</p></div></div>
           <h2>מה בדיוק אתם צריכים?</h2>
           <p class="muted">
             הבחירות האלו ישמשו בהמשך גם להצגת מודל 3D ו־AR מותאם.
@@ -77,7 +84,8 @@
           </div>
         </section>
         <section class="step">
-          <span class="pill">שלב 2 מתוך 3</span>
+          <span class="pill">שאלה 2 מתוך 3</span>
+          <div class="chat-message bot-message"><span class="bot-avatar">OP</span><div><b>עכשיו נסתכל על השטח.</b><p>צילום טוב ותיאור קצר יעזרו לבעל העסק להכין הצעה מדויקת יותר.</p></div></div>
           <h2>בואו נמדוד יחד את השטח</h2>
           <p class="muted">צלמו מהטלפון, הוסיפו מידות אם ידועות, ואנו נעביר הכל לבעל העסק לבדיקה.</p>
           <div class="grid">
@@ -125,7 +133,8 @@
           </div>
         </section>
         <section class="step">
-          <span class="pill">שלב 3 מתוך 3</span>
+          <span class="pill">שאלה 3 מתוך 3</span>
+          <div class="chat-message bot-message"><span class="bot-avatar">OP</span><div><b>כמעט סיימנו.</b><p>לאן נשלח את ההצעות ואת פרטי בעל העסק?</p></div></div>
           <h2>שליחת בקשה להצעת עבודה</h2>
           <div class="grid">
             <label>שם מלא<input name="name" required /></label

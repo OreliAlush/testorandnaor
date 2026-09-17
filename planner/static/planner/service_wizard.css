@@ -5,6 +5,56 @@
 .service-wizard .step.active {
   display: block;
 }
+.bot-topline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 17px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #405444;
+}
+.bot-topline small {
+  display: block;
+  color: #82bca1;
+  font-size: 12px;
+}
+.bot-avatar {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #edc66d, #a9762e);
+  color: #162016;
+  font: 900 12px Rubik, Arial;
+  box-shadow: 0 5px 15px #0004;
+}
+.chat-message {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  max-width: 600px;
+  margin: 0 0 15px;
+}
+.bot-message > div {
+  background: #253a2a;
+  border: 1px solid #4c664e;
+  border-radius: 4px 17px 17px 17px;
+  padding: 12px 15px;
+}
+.bot-message p {
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+.bot-welcome {
+  padding: 8px 0 4px;
+}
+.bot-start {
+  width: 100%;
+  margin-top: 10px;
+  padding: 15px !important;
+}
 .wizard-progress {
   display: flex;
   gap: 7px;
@@ -23,6 +73,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+@media (max-width: 600px) {
+  .choice-select {
+    grid-template-columns: 1fr;
+  }
 }
 .choice-select label {
   margin: 0 !important;
