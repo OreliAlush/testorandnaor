@@ -23,6 +23,9 @@
   const a4Status = document.querySelector("#a4-status");
   const a4Actions = document.querySelector("#a4-actions");
   const a4Reset = document.querySelector("#a4-reset");
+  const a4Camera = document.querySelector("#a4-camera");
+  const a4Video = document.querySelector("#a4-video");
+  const a4Capture = document.querySelector("#a4-capture");
   const data = {};
   const questions = [
     ["project", "היי, אני OrPro Assist 👋 ספרו לי במילים שלכם: מה תרצו לעשות בבית?", "למשל: אני רוצה פרגולה בחצר, יש נזילה במטבח..."],
@@ -191,6 +194,23 @@
   let measurePoints = [];
   let a4Homography;
   let a4Image;
+  let cameraStream;
+  const addMeasurementPhoto = (file) => {
+    const files = new DataTransfer();
+    [...photos.files, file].forEach((image) => files.items.add(image));
+    photos.files = files.files;
+  };
+  const stopCamera = () => {
+    if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
+    cameraStream = null;
+  };
+  const loadA4Image = (source, file) => {
+    if (file) addMeasurementPhoto(file);
+    a4Image = new Image();
+    a4Image.onload = () => { resetA4(); a4Camera.hidden = true; };
+    a4Image.src = source;
+    a4Canvas.hidden = false;
+  };
   const solve = (matrix, values) => {
     const size = values.length;
     const augmented = matrix.map((row, index) => [...row, values[index]]);
@@ -249,18 +269,36 @@
     a4Status.textContent = "סמנו את ארבע פינות דף ה־A4 לפי הסדר: ימין־למטה, שמאל־למטה, שמאל־למעלה, ימין־למעלה.";
     drawA4();
   };
-  a4Start.addEventListener("click", () => { a4Screen.hidden = false; });
-  a4Close.addEventListener("click", () => { a4Screen.hidden = true; });
+  a4Start.addEventListener("click", async () => {
+    a4Screen.hidden = false;
+    a4Camera.hidden = false;
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      a4Video.srcObject = cameraStream;
+      a4Status.textContent = "כוונו את המצלמה כך שדף ה־A4 והשטח שאותו מודדים יופיעו בתמונה, ואז צלמו.";
+    } catch (_) {
+      a4Camera.hidden = true;
+      a4Status.textContent = "אין גישה למצלמה. אפשר לבחור תמונה קיימת או לאשר הרשאת מצלמה בדפדפן.";
+    }
+  });
+  a4Close.addEventListener("click", () => { stopCamera(); a4Screen.hidden = true; });
   a4Reset.addEventListener("click", resetA4);
   a4Photo.addEventListener("change", () => {
     const file = a4Photo.files[0]; if (!file) return;
-    const files = new DataTransfer();
-    [...photos.files, file].forEach((image) => files.items.add(image));
-    photos.files = files.files;
-    a4Image = new Image();
-    a4Image.onload = resetA4;
-    a4Image.src = URL.createObjectURL(file);
-    a4Canvas.hidden = false;
+    stopCamera();
+    loadA4Image(URL.createObjectURL(file), file);
+  });
+  a4Capture.addEventListener("click", () => {
+    if (!a4Video.videoWidth) return;
+    const snapshot = document.createElement("canvas");
+    snapshot.width = a4Video.videoWidth; snapshot.height = a4Video.videoHeight;
+    snapshot.getContext("2d").drawImage(a4Video, 0, 0);
+    snapshot.toBlob((blob) => {
+      if (!blob) return;
+      const file = new File([blob], `measurement-${Date.now()}.jpg`, { type: "image/jpeg" });
+      stopCamera();
+      loadA4Image(URL.createObjectURL(file), file);
+    }, "image/jpeg", 0.92);
   });
   a4Canvas.addEventListener("click", (event) => {
     if (!a4Image) return;

@@ -76,7 +76,8 @@
     <section id="a4-measurement" class="a4-measurement" hidden>
       <div class="a4-card">
         <div class="a4-head"><span class="assistant-avatar">OP</span><div><b>מדידה בעזרת דף A4</b><p id="a4-status">צלמו את השטח כשדף A4 מונח על אותו משטח שאותו מודדים.</p></div><button id="a4-close" type="button">×</button></div>
-        <input id="a4-photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" />
+        <div id="a4-camera" class="a4-camera"><video id="a4-video" autoplay playsinline muted></video><div class="a4-guide">הניחו דף A4 על המשטח וצַלמו</div><button id="a4-capture" type="button">● צילום לסריקה</button></div>
+        <label class="a4-gallery">או בחרו תמונה קיימת<input id="a4-photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" /></label>
         <canvas id="a4-canvas" hidden></canvas>
         <div id="a4-actions" class="a4-actions" hidden><button data-a4-dimension="width" type="button">שמור כרוחב</button><button data-a4-dimension="length" type="button">שמור כאורך</button><button id="a4-reset" type="button">התחל מחדש</button></div>
         <p class="a4-note">חשוב: דף ה־A4 ושתי נקודות המדידה חייבים להיות על אותו מישור. המידה היא הערכה שדורשת אישור של בעל העסק.</p>
