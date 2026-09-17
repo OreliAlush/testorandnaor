@@ -50,11 +50,14 @@
           <div class="assistant-head"><span class="assistant-avatar">OP</span><span><b>OrPro Assist</b><small><i></i> מחובר עכשיו</small></span></div>
           <div id="assistant-messages" class="assistant-messages" aria-live="polite"></div>
           <div class="assistant-upload" hidden>
-            <label>📷 צרפו תמונות של השטח<input id="assistant-photos" name="measurement_photos" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple /></label>
-            <small>אפשר לצלם מהטלפון או לבחור תמונות קיימות.</small>
+            <label class="project-photo-label">📷 קודם מצלמים את הפרויקט<input id="assistant-photos" name="measurement_photos" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple /></label>
+            <small>צלמו 3–5 תמונות: מבט כללי, אזור העבודה, בעיה/קיר/תשתית מקרוב.</small>
+            <p id="assistant-photo-count" class="assistant-photo-count">עדיין לא נוספו תמונות פרויקט.</p>
+            <button id="assistant-photos-done" class="assistant-photos-done" type="button">סיימתי להעלות צילומי פרויקט ←</button>
+            <p class="assistant-divider">רוצים גם מידות משוערות?</p>
             <button id="assistant-ar-start" class="assistant-ar-start" type="button">📐 מדידה דרך מצלמת AR</button>
             <button id="assistant-a4-start" class="assistant-ar-start" type="button">📄 מדידה מצילום עם דף A4</button>
-            <button id="assistant-skip-photo" type="button">אין לי תמונה כרגע</button>
+            <button id="assistant-skip-photo" type="button">אין לי תמונות כרגע</button>
           </div>
           <div class="assistant-compose"><input id="assistant-input" type="text" autocomplete="off" placeholder="כתבו כאן..." /><button id="assistant-send" type="button" aria-label="שליחה">↑</button></div>
         </form>

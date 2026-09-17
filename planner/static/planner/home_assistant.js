@@ -7,6 +7,8 @@
   const send = document.querySelector("#assistant-send");
   const upload = document.querySelector(".assistant-upload");
   const photos = document.querySelector("#assistant-photos");
+  const photoCount = document.querySelector("#assistant-photo-count");
+  const photosDone = document.querySelector("#assistant-photos-done");
   const skipPhoto = document.querySelector("#assistant-skip-photo");
   const arStart = document.querySelector("#assistant-ar-start");
   const arScreen = document.querySelector("#ar-measurement");
@@ -27,6 +29,7 @@
   const a4Video = document.querySelector("#a4-video");
   const a4Capture = document.querySelector("#a4-capture");
   const data = {};
+  const projectFiles = [];
   const questions = [
     ["project", "היי, אני OrPro Assist 👋 ספרו לי במילים שלכם: מה תרצו לעשות בבית?", "למשל: אני רוצה פרגולה בחצר, יש נזילה במטבח..."],
     ["location", "מעולה. באיזו עיר או אזור נמצא הפרויקט?", "עיר או אזור"],
@@ -107,9 +110,17 @@
     if (event.key === "Enter") { event.preventDefault(); answer(); }
   });
   photos.addEventListener("change", () => {
-    const count = photos.files.length;
+    [...photos.files].forEach((image) => projectFiles.push(image));
+    const files = new DataTransfer();
+    projectFiles.forEach((image) => files.items.add(image));
+    photos.files = files.files;
+    const count = projectFiles.length;
     data.photos = count;
-    addMessage(count ? `צירפתי ${count} תמונות` : "אין לי תמונות כרגע", "customer");
+    photoCount.textContent = `נוספו ${count} תמונות פרויקט. אפשר להוסיף עוד או להמשיך.`;
+  });
+  photosDone.addEventListener("click", () => {
+    const count = projectFiles.length;
+    addMessage(count ? `צירפתי ${count} תמונות של הפרויקט` : "סיימתי בלי תמונות פרויקט", "customer");
     step += 1;
     ask();
   });
@@ -196,9 +207,11 @@
   let a4Image;
   let cameraStream;
   const addMeasurementPhoto = (file) => {
+    projectFiles.push(file);
     const files = new DataTransfer();
-    [...photos.files, file].forEach((image) => files.items.add(image));
+    projectFiles.forEach((image) => files.items.add(image));
     photos.files = files.files;
+    photoCount.textContent = `נוספו ${projectFiles.length} תמונות, כולל צילום המדידה.`;
   };
   const stopCamera = () => {
     if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
@@ -328,11 +341,7 @@
       data[button.dataset.a4Dimension] = meters;
       addMessage(`מדידה מצילום A4 נשמרה: ${button.dataset.a4Dimension === "width" ? "רוחב" : "אורך"} ${meters} מ׳`, "customer");
       a4Screen.hidden = true;
-      if (questions[step][0] === "photos") {
-        addMessage("צירפתי תמונת מדידה עם דף A4", "customer");
-        step += 1;
-        ask();
-      }
+      if (questions[step][0] === "photos") addMessage("צירפתי גם צילום מדידה עם דף A4", "customer");
     });
   });
   ask();
