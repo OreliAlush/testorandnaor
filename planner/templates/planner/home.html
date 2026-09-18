@@ -52,6 +52,7 @@
           <div class="assistant-upload" hidden>
             <label class="project-photo-label">📷 קודם מצלמים את הפרויקט<input id="assistant-photos" name="measurement_photos" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple /></label>
             <small>צלמו 3–5 תמונות: מבט כללי, אזור העבודה, בעיה/קיר/תשתית מקרוב.</small>
+            <button id="assistant-scan-start" class="assistant-scan-start" type="button">✨ סריקה מודרכת עם המצלמה</button>
             <p id="assistant-photo-count" class="assistant-photo-count">עדיין לא נוספו תמונות פרויקט.</p>
             <button id="assistant-photos-done" class="assistant-photos-done" type="button">סיימתי להעלות צילומי פרויקט ←</button>
             <p class="assistant-divider">רוצים גם מידות משוערות?</p>
@@ -84,6 +85,13 @@
         <canvas id="a4-canvas" hidden></canvas>
         <div id="a4-actions" class="a4-actions" hidden><button data-a4-dimension="width" type="button">שמור כרוחב</button><button data-a4-dimension="length" type="button">שמור כאורך</button><button id="a4-reset" type="button">התחל מחדש</button></div>
         <p class="a4-note">חשוב: דף ה־A4 ושתי נקודות המדידה חייבים להיות על אותו מישור. המידה היא הערכה שדורשת אישור של בעל העסק.</p>
+      </div>
+    </section>
+    <section id="project-scan" class="a4-measurement" hidden>
+      <div class="a4-card">
+        <div class="a4-head"><span class="assistant-avatar">OP</span><div><b>סריקת הפרויקט</b><p id="scan-status">נצלם כמה זוויות כדי שבעל העסק יבין את השטח היטב.</p></div><button id="scan-close" type="button">×</button></div>
+        <div class="a4-camera"><video id="scan-video" autoplay playsinline muted></video><div id="scan-prompt" class="a4-guide">צילום 1 מתוך 4: תמונה כללית של השטח</div><button id="scan-capture" type="button">● צילום</button></div>
+        <p class="a4-note">אין צורך למדוד. הבוט רק ינחה אתכם לצלם את הזוויות החשובות.</p>
       </div>
     </section>
     <main>

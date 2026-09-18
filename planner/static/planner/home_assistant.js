@@ -28,6 +28,13 @@
   const a4Camera = document.querySelector("#a4-camera");
   const a4Video = document.querySelector("#a4-video");
   const a4Capture = document.querySelector("#a4-capture");
+  const scanStart = document.querySelector("#assistant-scan-start");
+  const scanScreen = document.querySelector("#project-scan");
+  const scanVideo = document.querySelector("#scan-video");
+  const scanPrompt = document.querySelector("#scan-prompt");
+  const scanStatus = document.querySelector("#scan-status");
+  const scanCapture = document.querySelector("#scan-capture");
+  const scanClose = document.querySelector("#scan-close");
   const data = {};
   const projectFiles = [];
   const questions = [
@@ -206,6 +213,8 @@
   let a4Homography;
   let a4Image;
   let cameraStream;
+  let scanStream;
+  let scanIndex = 0;
   const addMeasurementPhoto = (file) => {
     projectFiles.push(file);
     const files = new DataTransfer();
@@ -216,6 +225,11 @@
   const stopCamera = () => {
     if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
     cameraStream = null;
+  };
+  const stopScan = () => {
+    if (scanStream) scanStream.getTracks().forEach((track) => track.stop());
+    scanStream = null;
+    scanScreen.hidden = true;
   };
   const loadA4Image = (source, file) => {
     if (file) addMeasurementPhoto(file);
@@ -311,6 +325,38 @@
       const file = new File([blob], `measurement-${Date.now()}.jpg`, { type: "image/jpeg" });
       stopCamera();
       loadA4Image(URL.createObjectURL(file), file);
+    }, "image/jpeg", 0.92);
+  });
+  const scanSteps = ["תמונה כללית של כל השטח", "צילום מצד ימין של אזור העבודה", "צילום מהצד הנגדי כדי להבין עומק", "צילום מקרוב של הפרט החשוב או התקלה"];
+  scanStart.addEventListener("click", async () => {
+    scanIndex = 0;
+    scanScreen.hidden = false;
+    scanPrompt.textContent = `צילום 1 מתוך 4: ${scanSteps[0]}`;
+    try {
+      scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      scanVideo.srcObject = scanStream;
+    } catch (_) {
+      stopScan();
+      addMessage("לא ניתן לפתוח מצלמה לסריקה. אפשר לצרף תמונות רגילות מהטלפון.", "bot");
+    }
+  });
+  scanClose.addEventListener("click", stopScan);
+  scanCapture.addEventListener("click", () => {
+    if (!scanVideo.videoWidth) return;
+    const snapshot = document.createElement("canvas");
+    snapshot.width = scanVideo.videoWidth; snapshot.height = scanVideo.videoHeight;
+    snapshot.getContext("2d").drawImage(scanVideo, 0, 0);
+    snapshot.toBlob((blob) => {
+      if (!blob) return;
+      addMeasurementPhoto(new File([blob], `project-scan-${Date.now()}-${scanIndex + 1}.jpg`, { type: "image/jpeg" }));
+      scanIndex += 1;
+      if (scanIndex === scanSteps.length) {
+        stopScan();
+        addMessage("השלמתי סריקה מודרכת של הפרויקט עם 4 תמונות", "customer");
+      } else {
+        scanStatus.textContent = `התמונה נשמרה. ממשיכים לצילום ${scanIndex + 1}.`;
+        scanPrompt.textContent = `צילום ${scanIndex + 1} מתוך 4: ${scanSteps[scanIndex]}`;
+      }
     }, "image/jpeg", 0.92);
   });
   a4Canvas.addEventListener("click", (event) => {
