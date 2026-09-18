@@ -10,6 +10,19 @@
 * {
   box-sizing: border-box;
 }
+[hidden] { display: none !important; }
+.assistant-error { margin: 12px !important; padding: 12px; background: #512b28; color: #ffe3dc !important; font-size: 14px !important; border-radius: 10px; }
+.assistant-review { padding: 20px; }
+.assistant-review h2 { font-size: 21px; }
+.assistant-review label { display: block; margin: 12px 0; font-size: 14px; }
+.assistant-review input, .assistant-review textarea, .assistant-review select { width: 100%; padding: 11px; margin-top: 5px; background: #111b13; color: #f5f1e8; border: 1px solid #566c58; border-radius: 10px; font: inherit; }
+.assistant-review textarea { min-height: 100px; }
+.assistant-review button { padding: 12px 16px; margin: 5px; background: #edb75c; color: #20180c; border: 0; border-radius: 10px; font: 700 15px Heebo, Arial; cursor: pointer; }
+.assistant-review button:disabled { opacity: .6; cursor: wait; }
+.assistant-photo-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.assistant-photo-preview figure { margin: 0; min-width: 0; }
+.assistant-photo-preview img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; }
+.assistant-photo-preview figcaption { font-size: 12px; overflow-wrap: anywhere; }
 body.home {
   margin: 0;
   background: var(--night);
@@ -203,6 +216,8 @@ body.home {
 .ar-panel button, .ar-result-actions button { border: 0; border-radius: 9px; padding: 9px 11px; background: #edb75c; color: #20180c; font: 800 13px Heebo, Arial; }
 .ar-result-actions { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; width: max-content; }
 .ar-result-actions #ar-reset { background: #dce6d9; }
+.ar-measurement:xr-overlay { background: transparent; }
+.ar-crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-shadow: 0 1px 4px black; font-size: 40px; pointer-events: none; }
 .a4-measurement { position: fixed; inset: 0; z-index: 101; overflow: auto; padding: 24px 14px; background: #0b100ce8; }
 .a4-card { width: min(100%, 760px); margin: auto; padding: 17px; border: 1px solid #5c725d; border-radius: 20px; background: #17231b; color: #f5f1e8; }
 .a4-head { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
@@ -382,12 +397,18 @@ body.home {
   text-align: center;
 }
 @media (max-width: 780px) {
+  html, body { overflow-x: hidden; }
   .nav {
-    padding: 20px;
+    padding: 16px;
+    gap: 12px;
+    align-items: center;
   }
+  .brand { font-size: 23px; }
+  .navlinks { gap: 8px; }
   .navlinks a:not(.business-link) {
     display: none;
   }
+  .business-link { padding: 9px 11px; font-size: 13px; white-space: nowrap; }
   .hero {
     min-height: 100vh;
     padding: 24px 16px 70px;
@@ -395,8 +416,25 @@ body.home {
   .hero-inner {
     grid-template-columns: 1fr;
   }
-  .assistant-chat { min-height: 470px; }
-  .assistant-copy h1 { font-size: 33px; }
+  .assistant-chat { min-height: 0; width: 100%; border-radius: 16px; }
+  .assistant-copy h1 { font-size: clamp(28px, 8vw, 36px); line-height: 1.15; }
+  .assistant-copy p { font-size: 15px; }
+  .assistant-messages { min-height: 255px; max-height: 48vh; padding: 14px 12px; }
+  .assistant-bubble { max-width: 94%; font-size: 15px; }
+  .assistant-compose { padding: 10px; }
+  .assistant-compose input { min-height: 46px; font-size: 16px; }
+  .assistant-compose button { width: 48px; min-height: 46px; }
+  .assistant-upload { padding: 12px; }
+  .assistant-upload input { font-size: 16px; }
+  .assistant-review { padding: 14px; }
+  .assistant-review input, .assistant-review textarea, .assistant-review select { font-size: 16px; }
+  .assistant-review button { width: 100%; margin: 5px 0; min-height: 46px; }
+  .assistant-photo-preview { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .ar-panel { inset: auto 10px 10px; flex-wrap: wrap; }
+  .ar-panel div { flex: 1 1 100%; }
+  .ar-panel button { flex: 1; min-height: 44px; }
+  .ar-result-actions { bottom: 90px; width: calc(100% - 24px); }
+  .ar-result-actions button { flex: 1; min-height: 44px; }
   .visual {
     height: 220px;
   }
@@ -420,6 +458,15 @@ body.home {
     grid-template-columns: 1fr;
   }
   .hero h1 {
-    font-size: 45px;
+    font-size: 40px;
   }
+}
+
+@media (max-width: 420px) {
+  .nav { padding-inline: 12px; }
+  .brand { font-size: 21px; }
+  .business-link { font-size: 12px; padding: 8px 9px; }
+  .hero { padding-inline: 12px; }
+  .cards { grid-template-columns: 1fr; }
+  .assistant-photo-preview { grid-template-columns: 1fr 1fr; }
 }

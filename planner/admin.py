@@ -72,7 +72,9 @@ class ServiceCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(ClientRequestLink)
 class ClientRequestLinkAdmin(admin.ModelAdmin):
-    list_display = ("label", "business", "category", "is_active", "created_at")
+    list_display = ("label", "customer_name", "business", "category", "is_active", "created_at")
+    search_fields = ("customer_name", "label", "business__name")
+    readonly_fields = ("token", "created_at")
     list_filter = ("category", "is_active")
 
 

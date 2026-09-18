@@ -25,13 +25,12 @@
         {% endif %}
         {% if offer.visualization %}
         <h2>הדמיה</h2>
-        <img src="{{ offer.visualization.url }}" alt="הדמיית הפרויקט" style="width:100%; border-radius:16px" />
+        <img src="{% url 'offer_image' kind offer.token %}" alt="הדמיית הפרויקט" style="width:100%; border-radius:16px" />
         {% endif %}
         <hr style="border-color: #405444" />
         <h2>יצירת קשר</h2>
         <p>
-          <b>{{ business.name }}</b><br />{{ business.phone }}<br />{{
-          business.email }}
+          <b>{{ business.name }}</b><br /><a href="tel:{{ business.phone }}">{{ business.phone }}</a><br /><a href="mailto:{{ business.email }}">{{ business.email }}</a>
         </p>
       </section>
     </main>

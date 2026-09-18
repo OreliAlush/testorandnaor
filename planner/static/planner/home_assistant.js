@@ -1,15 +1,22 @@
 (() => {
   const form = document.querySelector("#assistant-form");
   if (!form) return;
-
+  const config = JSON.parse(document.querySelector("#assistant-config").textContent);
   const messages = document.querySelector("#assistant-messages");
   const input = document.querySelector("#assistant-input");
   const send = document.querySelector("#assistant-send");
+  const compose = document.querySelector(".assistant-compose");
   const upload = document.querySelector(".assistant-upload");
   const photos = document.querySelector("#assistant-photos");
   const photoCount = document.querySelector("#assistant-photo-count");
   const photosDone = document.querySelector("#assistant-photos-done");
+  const photoPreview = document.querySelector("#assistant-photo-preview");
   const skipPhoto = document.querySelector("#assistant-skip-photo");
+  const review = document.querySelector("#assistant-review");
+  const reviewFields = document.querySelector("#assistant-review-fields");
+  const submitButton = document.querySelector("#assistant-confirm");
+  const editButton = document.querySelector("#assistant-edit");
+  const errorBox = document.querySelector("#assistant-error");
   const arStart = document.querySelector("#assistant-ar-start");
   const arScreen = document.querySelector("#ar-measurement");
   const arCanvas = document.querySelector("#ar-canvas");
@@ -35,19 +42,25 @@
   const scanStatus = document.querySelector("#scan-status");
   const scanCapture = document.querySelector("#scan-capture");
   const scanClose = document.querySelector("#scan-close");
-  const data = {};
+  const data = { name: config.customerName || "", width: "", length: "", height: "" };
   const projectFiles = [];
+  const captions = new Map();
+  const measurementSources = new Set();
+  const greeting = config.customerName
+    ? `היי ${config.customerName} 👋 ${config.businessName} הזמין אותך להכין בקשה עבור ״${config.projectLabel}״. מה תרצו לעשות בפרויקט?`
+    : "היי, אני OrPro Assist 👋 ספרו לי במילים שלכם: מה תרצו לעשות בבית?";
   const questions = [
-    ["project", "היי, אני OrPro Assist 👋 ספרו לי במילים שלכם: מה תרצו לעשות בבית?", "למשל: אני רוצה פרגולה בחצר, יש נזילה במטבח..."],
-    ["location", "מעולה. באיזו עיר או אזור נמצא הפרויקט?", "עיר או אזור"],
-    ["measurements", "יש לכם מידות משוערות? אפשר לכתוב למשל: 4 על 3, גובה 2.5. אם אין — כתבו 'אין לי'.", "כתבו מידות משוערות או 'אין לי'"],
-    ["photos", "מצוין. עכשיו אפשר לצרף תמונות של השטח. הן יעזרו לבעל העסק להבין את העבודה.", ""],
-    ["name", "איך קוראים לכם?", "שם מלא"],
+    ["project", greeting, "למשל: אני רוצה לשפץ את המטבח..."],
+    ["location", "באיזו עיר או אזור נמצא הפרויקט?", "עיר או אזור"],
+    ["details", "מה חשוב שבעל העסק ידע? למשל המצב הקיים, הסגנון הרצוי ומתי תרצו להתחיל.", "פרטים נוספים, או 'דלג'"],
+    ["photos", "בואו נראה את הפרויקט. אפשר לצלם ארבע זוויות בהדרכה או לצרף תמונות קיימות. אין צורך למדוד.", ""],
+    ...(!config.customerName ? [["name", "איך קוראים לכם?", "שם מלא"]] : []),
     ["phone", "מה מספר הטלפון לחזרה?", "050-1234567"],
-    ["email", "ולסיום, אימייל לקבלת ההצעות? אפשר לכתוב 'דלג'.", "name@example.com"],
+    ["email", "מה האימייל לקבלת הצעת המחיר? אפשר לכתוב 'דלג'.", "name@example.com"],
   ];
   let step = 0;
-
+  let busy = false;
+  let submitted = false;
   const addMessage = (text, type) => {
     const bubble = document.createElement("div");
     bubble.className = `assistant-bubble ${type}`;
@@ -55,85 +68,224 @@
     messages.appendChild(bubble);
     messages.scrollTop = messages.scrollHeight;
   };
+  const showError = (text) => {
+    errorBox.textContent = text;
+    errorBox.hidden = !text;
+  };
   const ask = () => {
-    const [, question, placeholder] = questions[step];
+    const [key, question, placeholder] = questions[step];
     addMessage(question, "bot");
     input.placeholder = placeholder;
-    const photoStep = questions[step][0] === "photos";
-    upload.hidden = !photoStep;
-    input.hidden = photoStep;
-    send.hidden = photoStep;
-    if (photoStep) {
-      photos.focus();
-    } else {
-      input.focus();
-    }
-  };
-  const parseMeasurements = (value) => {
-    const values = value.replace(/,/g, ".").match(/\d+(?:\.\d+)?/g) || [];
-    data.width = values[0] || "";
-    data.length = values[1] || "";
-    data.height = values[2] || "";
+    input.type = key === "phone" ? "tel" : "text";
+    input.inputMode = key === "phone" ? "tel" : key === "email" ? "email" : "text";
+    input.maxLength = key === "project" || key === "details" ? 4000 : key === "email" ? 254 : 100;
+    upload.hidden = key !== "photos";
+    compose.hidden = key === "photos";
+    if (key !== "photos") input.focus();
   };
   const categorySlug = (value) => {
-    const text = value.toLowerCase();
-    if (/פרגול|דק|הצלל/.test(text)) return "pergolas";
-    if (/מטבח|ארון|נגר/.test(text)) return "kitchens";
-    if (/נזיל|צנר|ברז|סתימ|ביוב|אינסטל/.test(text)) return "plumbing";
-    if (/חשמל|שקע|תאור|לוח/.test(text)) return "electricity";
-    return "renovations";
+    if (config.categorySlug) return config.categorySlug;
+    // Routing is confirmed by the customer on the review screen.
+    const rules = [
+      [/נזיל|צנר|ברז|סתימ|ביוב|אינסטל/, "plumbing"],
+      [/פרגול|דק|הצלל/, "pergolas"],
+      [/חשמל|שקע|תאור|לוח/, "electricity"],
+      [/מטבח|ארון|נגר/, "kitchens"],
+      [/שיפו|ריצו|גבס|צבע/, "renovations"],
+    ];
+    const guess = rules.find(([pattern]) => pattern.test(value))?.[1];
+    if (config.categories.some((item) => item.slug === guess)) return guess;
+    return config.categories.find((item) => value.includes(item.name))?.slug || "";
+  };
+  const refreshPhotos = () => {
+    photoPreview.replaceChildren();
+    photoCount.textContent = projectFiles.length
+      ? `צורפו ${projectFiles.length} תמונות. אפשר להוסיף או להסיר לפני השליחה.`
+      : "עדיין לא נוספו תמונות פרויקט.";
+    projectFiles.forEach((file, index) => {
+      const card = document.createElement("figure");
+      const image = document.createElement("img");
+      const url = URL.createObjectURL(file);
+      image.src = url;
+      image.alt = captions.get(file) || `תמונה ${index + 1}`;
+      image.onload = image.onerror = () => URL.revokeObjectURL(url);
+      const caption = document.createElement("figcaption");
+      caption.textContent = image.alt;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "הסרה";
+      remove.addEventListener("click", () => {
+        projectFiles.splice(projectFiles.indexOf(file), 1);
+        captions.delete(file);
+        refreshPhotos();
+      });
+      card.append(image, caption, remove);
+      photoPreview.appendChild(card);
+    });
+  };
+  const addMeasurementPhoto = (file, caption = "צילום פרויקט") => {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      showError("אפשר לצרף תמונות JPG, PNG או WEBP עד 10MB לתמונה.");
+      return false;
+    }
+    if (projectFiles.some((item) => item.name === file.name && item.size === file.size && item.lastModified === file.lastModified)) return true;
+    if (projectFiles.length >= 12) {
+      showError("אפשר לצרף עד 12 תמונות. הסירו תמונה לפני הוספת צילום נוסף.");
+      return false;
+    }
+    projectFiles.push(file);
+    captions.set(file, caption);
+    refreshPhotos();
+    return true;
   };
   const finish = () => {
-    form.service_type.value = data.project;
-    form.description.value = data.project;
-    form.city.value = data.location;
-    form.address.value = data.location;
-    form.estimated_width.value = data.width;
-    form.estimated_length.value = data.length;
-    form.estimated_height.value = data.height;
-    form.name.value = data.name;
-    form.phone.value = data.phone;
-    form.email.value = data.email === "דלג" ? "" : data.email;
-    form.action = `/שירותים/${categorySlug(data.project)}/`;
-    addMessage("תודה! אני שולח עכשיו את הפרטים לבעלי העסק המתאימים.", "bot");
-    setTimeout(() => form.submit(), 700);
-  };
-  const answer = () => {
-    const value = input.value.trim();
-    if (!value) return;
-    if (questions[step][0] === "phone" && value.replace(/\D/g, "").length < 8) {
-      addMessage("נראה שחסר חלק מהמספר. אפשר לכתוב שוב טלפון מלא?", "bot");
-      return;
+    compose.hidden = true;
+    upload.hidden = true;
+    review.hidden = false;
+    reviewFields.replaceChildren();
+    const field = (key, label, value, type = "text") => {
+      const wrapper = document.createElement("label");
+      wrapper.textContent = label;
+      const control = document.createElement(type === "textarea" ? "textarea" : "input");
+      if (type !== "textarea") control.type = type;
+      control.name = `review_${key}`;
+      control.value = value || "";
+      control.required = ["name", "phone", "project"].includes(key);
+      control.maxLength = key === "project" ? 9000 : key === "phone" ? 30 : key === "email" ? 254 : 100;
+      wrapper.appendChild(control);
+      reviewFields.appendChild(wrapper);
+    };
+    field("name", "שם הלקוח", data.name);
+    field("phone", "טלפון", data.phone, "tel");
+    field("email", "אימייל (לא חובה)", data.email, "email");
+    field("location", "עיר / אזור", data.location);
+    field("project", "תיאור העבודה", [data.project, data.details].filter(Boolean).join("\n\n"), "textarea");
+    if (!config.categorySlug) {
+      const label = document.createElement("label");
+      label.textContent = "תחום העבודה — ודאו שהבקשה מגיעה לבעל המקצוע הנכון";
+      const select = document.createElement("select");
+      select.name = "review_category";
+      select.required = true;
+      select.add(new Option("בחרו תחום", ""));
+      config.categories.forEach((item) => select.add(new Option(item.name, item.slug)));
+      select.value = categorySlug(data.project);
+      label.appendChild(select);
+      reviewFields.appendChild(label);
     }
-    data[questions[step][0]] = value;
-    if (questions[step][0] === "measurements") parseMeasurements(value);
-    addMessage(value, "customer");
-    input.value = "";
+    const summary = document.createElement("p");
+    summary.textContent = `${projectFiles.length} תמונות יצורפו לבקשה. יעד: ${config.businessName || "בעלי המקצוע הפעילים בתחום הנבחר"}.`;
+    reviewFields.appendChild(summary);
+    const measured = ["width", "length", "height"].filter((key) => data[key]);
+    if (measured.length) {
+      const note = document.createElement("p");
+      const labels = { width: "רוחב", length: "אורך", height: "גובה" };
+      note.textContent = "מידות משוערות: " + measured.map((key) => `${labels[key]} ${data[key]} מ׳`).join(" · ");
+      reviewFields.appendChild(note);
+    }
+    addMessage("כל הפרטים מוכנים. אפשר לבדוק ולתקן אותם לפני השליחה.", "bot");
+  };
+  const advance = () => {
     step += 1;
     if (step < questions.length) ask(); else finish();
   };
+  const answer = () => {
+    if (busy || submitted || step >= questions.length) return;
+    const value = input.value.trim();
+    if (!value) return;
+    const key = questions[step][0];
+    if (key === "photos") return;
+    if (key === "phone" && (!/^[+\d\s()\-]+$/.test(value) || !/^\d{8,15}$/.test(value.replace(/\D/g, "")))) {
+      showError("נא להזין מספר טלפון מלא ותקין.");
+      return;
+    }
+    if (key === "email" && value !== "דלג" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      showError("נא להזין אימייל תקין או לכתוב 'דלג'.");
+      return;
+    }
+    showError("");
+    data[key] = value === "דלג" && ["email", "details"].includes(key) ? "" : value;
+    addMessage(value, "customer");
+    input.value = "";
+    advance();
+  };
+  const submitRequest = async () => {
+    if (busy || submitted || !form.reportValidity()) return;
+    busy = true;
+    submitButton.disabled = true;
+    editButton.disabled = true;
+    submitButton.textContent = "שומר את הבקשה והתמונות…";
+    showError("");
+    const payload = new FormData();
+    const value = (key) => form.elements.namedItem(`review_${key}`)?.value.trim() || "";
+    const fields = {
+      name: value("name"), phone: value("phone"), email: value("email"),
+      city: value("location"), address: value("location"), description: value("project"),
+      service_type: data.project, category: config.categorySlug || value("category"),
+      submission_id: config.submissionId,
+      estimated_width: data.width || "", estimated_length: data.length || "", estimated_height: data.height || "",
+      measurement_method: [...measurementSources].join(", ") || "ללא מדידה",
+      csrfmiddlewaretoken: form.elements.namedItem("csrfmiddlewaretoken").value,
+    };
+    Object.entries(fields).forEach(([key, val]) => payload.append(key, val));
+    projectFiles.forEach((file) => {
+      payload.append("measurement_photos", file, file.name);
+      payload.append("photo_captions", captions.get(file) || "צילום פרויקט");
+    });
+    try {
+      const response = await fetch(config.submitUrl, {
+        method: "POST", body: payload, credentials: "same-origin",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.ok) {
+        const details = result?.errors ? Object.values(result.errors).flat().join(" ") : "";
+        throw new Error(details || result?.message || "השליחה לא הושלמה. הפרטים והתמונות נשארו כאן; אפשר לנסות שוב.");
+      }
+      submitted = true;
+      review.hidden = true;
+      addMessage(`הבקשה נשמרה בהצלחה ✓ מספר בקשה: ${result.requestId}. ${result.direct ? "הפרטים והתמונות זמינים כעת בפאנל של " + result.recipient : "הפרטים והתמונות זמינים כעת לבעלי המקצוע בתחום שנבחר ולמנהל האתר"}.`, "bot");
+      stopCamera();
+      stopScan();
+    } catch (error) {
+      showError(error.message || "החיבור הופסק. אפשר לנסות שוב.");
+    } finally {
+      busy = false;
+      submitButton.disabled = false;
+      editButton.disabled = false;
+      submitButton.textContent = "אישור ושליחת הבקשה";
+    }
+  };
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!review.hidden) submitRequest(); else answer();
+  });
   send.addEventListener("click", answer);
   input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") { event.preventDefault(); answer(); }
+    if (event.key === "Enter" && !event.isComposing) { event.preventDefault(); answer(); }
   });
   photos.addEventListener("change", () => {
-    [...photos.files].forEach((image) => projectFiles.push(image));
-    const files = new DataTransfer();
-    projectFiles.forEach((image) => files.items.add(image));
-    photos.files = files.files;
-    const count = projectFiles.length;
-    data.photos = count;
-    photoCount.textContent = `נוספו ${count} תמונות פרויקט. אפשר להוסיף עוד או להמשיך.`;
+    showError("");
+    [...photos.files].forEach((file) => addMeasurementPhoto(file));
+    photos.value = "";
   });
-  photosDone.addEventListener("click", () => {
-    const count = projectFiles.length;
-    addMessage(count ? `צירפתי ${count} תמונות של הפרויקט` : "סיימתי בלי תמונות פרויקט", "customer");
-    step += 1;
-    ask();
-  });
-  skipPhoto.addEventListener("click", () => {
-    addMessage("אין לי תמונות כרגע", "customer");
-    step += 1;
+  const completePhotos = () => {
+    if (questions[step]?.[0] !== "photos") return;
+    showError("");
+    addMessage(projectFiles.length ? `צירפתי ${projectFiles.length} תמונות של הפרויקט` : "אין לי תמונות כרגע", "customer");
+    advance();
+  };
+  photosDone.addEventListener("click", completePhotos);
+  skipPhoto.addEventListener("click", completePhotos);
+  submitButton.addEventListener("click", submitRequest);
+  editButton.addEventListener("click", () => {
+    data.name = form.elements.namedItem("review_name").value;
+    data.phone = form.elements.namedItem("review_phone").value;
+    data.email = form.elements.namedItem("review_email").value;
+    data.location = form.elements.namedItem("review_location").value;
+    data.project = form.elements.namedItem("review_project").value;
+    data.details = "";
+    review.hidden = true;
+    step = questions.findIndex(([key]) => key === "photos");
     ask();
   });
 
@@ -148,10 +300,12 @@
   };
   const resetAR = () => {
     arPoints = [];
+    arPosition = null;
     arActions.hidden = true;
     arStatus.textContent = "כוונו למשטח ולחצו על שתי נקודות למדידה.";
   };
   const startAR = async () => {
+    resetAR();
     if (!navigator.xr) {
       addMessage("מדידת AR אינה נתמכת בדפדפן הזה. אפשר לצלם עם דף A4 ולהזין מידה משוערת.", "bot");
       return;
@@ -161,7 +315,7 @@
       if (!supported) throw new Error("unsupported");
       arScreen.hidden = false;
       const gl = arCanvas.getContext("webgl", { xrCompatible: true });
-      arSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test", "local-floor"] });
+      arSession = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["hit-test", "local-floor", "dom-overlay"], domOverlay: { root: arScreen } });
       await gl.makeXRCompatible();
       arSession.updateRenderState({ baseLayer: new XRWebGLLayer(arSession, gl) });
       const referenceSpace = await arSession.requestReferenceSpace("local-floor");
@@ -170,7 +324,7 @@
       arSession.addEventListener("end", () => { arScreen.hidden = true; arSession = null; });
       arSession.addEventListener("select", () => {
         if (!arPosition || arPoints.length === 2) return;
-        arPoints.push({ ...arPosition });
+        arPoints.push({ x: arPosition.x, y: arPosition.y, z: arPosition.z });
         if (arPoints.length === 1) arStatus.textContent = "נקודה ראשונה נשמרה. לחצו על נקודת הסיום.";
         if (arPoints.length === 2) {
           const meters = distance(arPoints[0], arPoints[1]).toFixed(2);
@@ -179,19 +333,23 @@
         }
       });
       const frameLoop = (_, frame) => {
+        if (!arSession) return;
         arSession.requestAnimationFrame(frameLoop);
         const baseLayer = arSession.renderState.baseLayer;
         gl.bindFramebuffer(gl.FRAMEBUFFER, baseLayer.framebuffer);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         const hits = frame.getHitTestResults(hitTestSource);
+        arPosition = null;
         if (hits.length) {
           const pose = hits[0].getPose(referenceSpace);
-          arPosition = pose.transform.position;
+          arPosition = pose?.transform.position || null;
         }
+        if (arPoints.length < 2) arStatus.textContent = arPosition ? (arPoints.length ? "כוונו את מרכז המסך לסיום והקישו." : "כוונו את מרכז המסך להתחלה והקישו.") : "מחפש משטח. הזיזו את המצלמה באיטיות.";
       };
       arSession.requestAnimationFrame(frameLoop);
     } catch (_) {
+      if (arSession) await stopAR();
       arScreen.hidden = true;
       addMessage("לא ניתן לפתוח AR במכשיר הזה. נסו Chrome במכשיר Android או השתמשו בצילום עם דף A4.", "bot");
     }
@@ -201,12 +359,16 @@
   arReset.addEventListener("click", resetAR);
   document.querySelectorAll("[data-ar-dimension]").forEach((button) => {
     button.addEventListener("click", async () => {
+      if (arPoints.length !== 2) return;
       const meters = distance(arPoints[0], arPoints[1]).toFixed(2);
+      if (!Number.isFinite(Number(meters)) || Number(meters) <= 0 || Number(meters) > 9999.99) return;
+      measurementSources.add("AR");
       data[button.dataset.arDimension] = meters;
       addMessage(`מדידת AR נשמרה: ${button.dataset.arDimension === "width" ? "רוחב" : "אורך"} ${meters} מ׳`, "customer");
       await stopAR();
     });
   });
+  [arClose, arReset, arActions].forEach((control) => control.addEventListener("beforexrselect", (event) => event.preventDefault()));
 
   let a4Points = [];
   let measurePoints = [];
@@ -215,26 +377,22 @@
   let cameraStream;
   let scanStream;
   let scanIndex = 0;
-  const addMeasurementPhoto = (file) => {
-    projectFiles.push(file);
-    const files = new DataTransfer();
-    projectFiles.forEach((image) => files.items.add(image));
-    photos.files = files.files;
-    photoCount.textContent = `נוספו ${projectFiles.length} תמונות, כולל צילום המדידה.`;
-  };
   const stopCamera = () => {
     if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
     cameraStream = null;
+    a4Video.srcObject = null;
   };
   const stopScan = () => {
     if (scanStream) scanStream.getTracks().forEach((track) => track.stop());
     scanStream = null;
+    scanVideo.srcObject = null;
     scanScreen.hidden = true;
   };
   const loadA4Image = (source, file) => {
-    if (file) addMeasurementPhoto(file);
+    if (file && !addMeasurementPhoto(file, "צילום כיול A4")) { URL.revokeObjectURL(source); return; }
     a4Image = new Image();
-    a4Image.onload = () => { resetA4(); a4Camera.hidden = true; };
+    a4Image.onload = () => { resetA4(); a4Camera.hidden = true; URL.revokeObjectURL(source); };
+    a4Image.onerror = () => { URL.revokeObjectURL(source); showError("לא הצלחנו לקרוא את התמונה. נסו צילום אחר."); };
     a4Image.src = source;
     a4Canvas.hidden = false;
   };
@@ -297,10 +455,12 @@
     drawA4();
   };
   a4Start.addEventListener("click", async () => {
+    stopCamera();
     a4Screen.hidden = false;
     a4Camera.hidden = false;
     try {
       cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      if (a4Screen.hidden) { stopCamera(); return; }
       a4Video.srcObject = cameraStream;
       a4Status.textContent = "כוונו את המצלמה כך שדף ה־A4 והשטח שאותו מודדים יופיעו בתמונה, ואז צלמו.";
     } catch (_) {
@@ -316,12 +476,14 @@
     loadA4Image(URL.createObjectURL(file), file);
   });
   a4Capture.addEventListener("click", () => {
-    if (!a4Video.videoWidth) return;
+    if (!a4Video.videoWidth || a4Capture.disabled) return;
+    a4Capture.disabled = true;
     const snapshot = document.createElement("canvas");
     snapshot.width = a4Video.videoWidth; snapshot.height = a4Video.videoHeight;
     snapshot.getContext("2d").drawImage(a4Video, 0, 0);
     snapshot.toBlob((blob) => {
-      if (!blob) return;
+      a4Capture.disabled = false;
+      if (!blob || a4Screen.hidden) return;
       const file = new File([blob], `measurement-${Date.now()}.jpg`, { type: "image/jpeg" });
       stopCamera();
       loadA4Image(URL.createObjectURL(file), file);
@@ -329,11 +491,15 @@
   });
   const scanSteps = ["תמונה כללית של כל השטח", "צילום מצד ימין של אזור העבודה", "צילום מהצד הנגדי כדי להבין עומק", "צילום מקרוב של הפרט החשוב או התקלה"];
   scanStart.addEventListener("click", async () => {
+    stopScan();
     scanIndex = 0;
     scanScreen.hidden = false;
+    scanCapture.disabled = false;
+    scanStatus.textContent = "נצלם ארבע זוויות של הפרויקט.";
     scanPrompt.textContent = `צילום 1 מתוך 4: ${scanSteps[0]}`;
     try {
       scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      if (scanScreen.hidden) { stopScan(); return; }
       scanVideo.srcObject = scanStream;
     } catch (_) {
       stopScan();
@@ -342,13 +508,16 @@
   });
   scanClose.addEventListener("click", stopScan);
   scanCapture.addEventListener("click", () => {
-    if (!scanVideo.videoWidth) return;
+    if (!scanVideo.videoWidth || scanCapture.disabled) return;
+    scanCapture.disabled = true;
+    const capturedIndex = scanIndex;
     const snapshot = document.createElement("canvas");
     snapshot.width = scanVideo.videoWidth; snapshot.height = scanVideo.videoHeight;
     snapshot.getContext("2d").drawImage(scanVideo, 0, 0);
     snapshot.toBlob((blob) => {
-      if (!blob) return;
-      addMeasurementPhoto(new File([blob], `project-scan-${Date.now()}-${scanIndex + 1}.jpg`, { type: "image/jpeg" }));
+      scanCapture.disabled = false;
+      if (!blob || scanScreen.hidden || capturedIndex !== scanIndex) return;
+      if (!addMeasurementPhoto(new File([blob], `project-scan-${Date.now()}-${scanIndex + 1}.jpg`, { type: "image/jpeg" }), scanSteps[scanIndex])) { stopScan(); return; }
       scanIndex += 1;
       if (scanIndex === scanSteps.length) {
         stopScan();
@@ -384,11 +553,15 @@
   document.querySelectorAll("[data-a4-dimension]").forEach((button) => {
     button.addEventListener("click", () => {
       const meters = a4Actions.dataset.meters;
+      if (!Number.isFinite(Number(meters)) || Number(meters) <= 0 || Number(meters) > 9999.99) return;
+      measurementSources.add("צילום A4");
       data[button.dataset.a4Dimension] = meters;
       addMessage(`מדידה מצילום A4 נשמרה: ${button.dataset.a4Dimension === "width" ? "רוחב" : "אורך"} ${meters} מ׳`, "customer");
       a4Screen.hidden = true;
-      if (questions[step][0] === "photos") addMessage("צירפתי גם צילום מדידה עם דף A4", "customer");
+      if (questions[step]?.[0] === "photos") addMessage("צירפתי גם צילום מדידה עם דף A4", "customer");
     });
   });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) { stopCamera(); stopScan(); } });
+  window.addEventListener("pagehide", () => { stopCamera(); stopScan(); });
   ask();
 })();

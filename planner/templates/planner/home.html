@@ -9,15 +9,15 @@
       href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&family=Rubik:wght@500;700;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="{% static 'planner/home.css' %}" />
+    <link rel="stylesheet" href="{% static 'planner/home.css' %}?v=20260918" />
   </head>
   <body class="home">
     <section class="hero">
       <nav class="nav">
         <a class="brand" href="/">{{ site.brand_name }}</a>
         <div class="navlinks">
-          <a href="#categories">תחומי שירות</a><a href="#how">איך זה עובד</a
-          ><a href="{% url 'experts' %}">המומחים שלנו</a>{% for page in menu_pages %}<a href="{% url 'content_page' page.slug %}"
+          {% if not client_link %}<a href="#categories">תחומי שירות</a><a href="#how">איך זה עובד</a>{% endif %}
+          <a href="{% url 'experts' %}">המומחים שלנו</a>{% for page in menu_pages %}<a href="{% url 'content_page' page.slug %}"
             >{{ page.title }}</a
           >{% endfor %}<a
             class="business-link"
@@ -28,10 +28,16 @@
       </nav>
       <div class="hero-inner assistant-layout">
         <div class="assistant-copy">
+          {% if client_link %}
+          <span class="kicker">{{ client_link.business.name }} · {{ client_link.category.name }}</span>
+          <h1>היי {{ client_link.customer_name|default:"וברוכים הבאים" }},<br /><em>בואו נכין את הפרויקט.</em></h1>
+          <p>{{ client_link.label }} — התמונות והפרטים יועברו ישירות אל {{ client_link.business.name }}.</p>
+          {% else %}
           <span class="kicker">{{ site.home_kicker }}</span>
           <h1>ספרו לנו מה צריך.<br /><em>אנחנו נסדר את השאר.</em></h1>
           <p>שיחה קצרה במקום טפסים. העוזר אוסף את פרטי הפרויקט, התמונות והמידות — ומעביר אותם לבעלי העסק המתאימים.</p>
           <p class="assistant-note">ללא התחייבות · בעל העסק מאשר מידות לפני הצעת המחיר</p>
+          {% endif %}
         </div>
         <form id="assistant-form" class="assistant-chat" method="post" enctype="multipart/form-data">
           {% csrf_token %}
@@ -49,23 +55,33 @@
           <input type="hidden" name="email" />
           <div class="assistant-head"><span class="assistant-avatar">OP</span><span><b>OrPro Assist</b><small><i></i> מחובר עכשיו</small></span></div>
           <div id="assistant-messages" class="assistant-messages" aria-live="polite"></div>
+          <p id="assistant-error" class="assistant-error" role="alert" hidden></p>
           <div class="assistant-upload" hidden>
             <label class="project-photo-label">📷 קודם מצלמים את הפרויקט<input id="assistant-photos" name="measurement_photos" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple /></label>
             <small>צלמו 3–5 תמונות: מבט כללי, אזור העבודה, בעיה/קיר/תשתית מקרוב.</small>
             <button id="assistant-scan-start" class="assistant-scan-start" type="button">✨ סריקה מודרכת עם המצלמה</button>
             <p id="assistant-photo-count" class="assistant-photo-count">עדיין לא נוספו תמונות פרויקט.</p>
+            <div id="assistant-photo-preview" class="assistant-photo-preview"></div>
             <button id="assistant-photos-done" class="assistant-photos-done" type="button">סיימתי להעלות צילומי פרויקט ←</button>
             <p class="assistant-divider">רוצים גם מידות משוערות?</p>
             <button id="assistant-ar-start" class="assistant-ar-start" type="button">📐 מדידה דרך מצלמת AR</button>
             <button id="assistant-a4-start" class="assistant-ar-start" type="button">📄 מדידה מצילום עם דף A4</button>
             <button id="assistant-skip-photo" type="button">אין לי תמונות כרגע</button>
           </div>
+          <section id="assistant-review" class="assistant-review" hidden>
+            <h2>בדיקה אחרונה לפני השליחה</h2>
+            <div id="assistant-review-fields"></div>
+            <button id="assistant-confirm" type="button">אישור ושליחת הבקשה</button>
+            <button id="assistant-edit" type="button">חזרה לתמונות</button>
+          </section>
           <div class="assistant-compose"><input id="assistant-input" type="text" autocomplete="off" placeholder="כתבו כאן..." /><button id="assistant-send" type="button" aria-label="שליחה">↑</button></div>
+          <noscript><p>כדי להשתמש בצ׳אט יש להפעיל JavaScript בדפדפן.</p></noscript>
         </form>
       </div>
     </section>
     <section id="ar-measurement" class="ar-measurement" hidden>
       <canvas id="ar-canvas"></canvas>
+      <div class="ar-crosshair" aria-hidden="true">＋</div>
       <div class="ar-panel">
         <span class="assistant-avatar">OP</span>
         <div><b>מדידת AR</b><p id="ar-status">כוונו למשטח ולחצו על שתי נקודות למדידה.</p></div>
@@ -94,7 +110,7 @@
         <p class="a4-note">אין צורך למדוד. הבוט רק ינחה אתכם לצלם את הזוויות החשובות.</p>
       </div>
     </section>
-    <main>
+    {% if not client_link %}<main>
       <section class="categories" id="categories">
         <span class="section-label">מה צריך בבית?</span>
         <h2>בחרו תחום והתחילו נכון.</h2>
@@ -129,8 +145,9 @@
           </article>
         </div>
       </section>
-    </main>
+    </main>{% endif %}
     <footer class="footer">{{ site.footer_text }}</footer>
-    <script src="{% static 'planner/home_assistant.js' %}"></script>
+    {{ assistant_config|json_script:"assistant-config" }}
+    <script src="{% static 'planner/home_assistant.js' %}?v=20260918"></script>
   </body>
 </html>

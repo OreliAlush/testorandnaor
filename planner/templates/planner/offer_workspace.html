@@ -1,0 +1,58 @@
+{% load static %}
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>הבקשה של {{ item.name }} | {{ business.name }}</title>
+    <link rel="stylesheet" href="{% static 'planner/portal.css' %}?v=20260918">
+  </head>
+  <body class="portal">
+    <main class="shell">
+      <header class="topbar"><a class="logo" href="{% url 'business_dashboard' %}">חזרה לפאנל העסק</a><span class="pill">{{ business.name }}</span></header>
+      <section class="hero">
+        <span class="pill">{% if kind == 'direct' %}בקשה אישית · {{ item.link.label }}{% else %}בקשה כללית{% endif %}</span>
+        <h1>הפרויקט של {{ item.name }}</h1>
+        <p>{{ item.city }} · {{ item.created_at|date:"d/m/Y H:i" }} · {{ item.status }}</p>
+        <p><a href="tel:{{ item.phone }}">{{ item.phone }}</a>{% if item.email %} · <a href="mailto:{{ item.email }}">{{ item.email }}</a>{% endif %}</p>
+      </section>
+      <div class="workspace-grid">
+        <div>
+          <section class="card">
+            <h2>פרטי העבודה</h2>
+            <p style="white-space:pre-wrap">{{ item.description }}</p>
+            <p>כתובת / אזור: {{ item.address|default:"לא נמסר" }}</p>
+            <p>דחיפות: {{ item.urgency }} · תקציב: {{ item.budget|default:"לא נמסר" }} · מועד מועדף: {{ item.preferred_date|default:"לא נמסר" }}</p>
+            {% for label, value in configuration.items %}{% if value %}<p>{{ label }}: {% if label == 'תוספות' %}{{ value|join:", " }}{% else %}{{ value }}{% endif %}</p>{% endif %}{% endfor %}
+            <h2>מידות שנמסרו</h2>
+            <p>{{ item.measurement_method|default:"ללא מדידה" }} · {{ item.measurement_confidence }}</p>
+            {% if item.estimated_width or item.estimated_length or item.estimated_height %}
+            <p>רוחב {{ item.estimated_width|default:"—" }} מ׳ · אורך {{ item.estimated_length|default:"—" }} מ׳ · גובה {{ item.estimated_height|default:"—" }} מ׳</p>
+            {% else %}<p>הלקוח לא נדרש למדוד. אפשר להתרשם מהצילומים ולתאם אימות מידות.</p>{% endif %}
+          </section>
+          <section class="card" style="margin-top:16px">
+            <h2>צילומי הפרויקט</h2>
+            <div class="project-gallery">
+              {% if item.photo %}<a href="{% url 'request_photo' kind item.pk 0 %}" target="_blank" rel="noopener"><img src="{% url 'request_photo' kind item.pk 0 %}" alt="תמונה ראשית" loading="lazy"><span>תמונה ראשית</span></a>{% endif %}
+              {% for photo in item.measurement_images.all %}
+              <a href="{% url 'request_photo' kind item.pk photo.pk %}" target="_blank" rel="noopener"><img src="{% url 'request_photo' kind item.pk photo.pk %}" alt="{{ photo.caption|default:'צילום פרויקט' }}" loading="lazy"><span>{{ photo.caption|default:'צילום פרויקט' }}</span></a>
+              {% empty %}{% if not item.photo %}<p>לא צורפו תמונות.</p>{% endif %}{% endfor %}
+            </div>
+          </section>
+        </div>
+        <section class="card">
+          <h2>הצעת מחיר ללקוח</h2>
+          {% if closed %}<p>הבקשה נסגרה. ניתן לעיין בפרטים ובהצעה הקיימת.</p>{% else %}
+          <p>אפשר להוסיף הדמיה. מלאו מידות מאומתות רק לאחר בדיקה.</p>
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ quote_form.as_p }}
+            {% if existing_offer.visualization %}<p>כבר צורפה הדמיה; אם לא תבחרו תמונה חדשה, היא תישמר.</p>{% endif %}
+            <button type="submit">שמירת ההצעה ושליחת קישור ללקוח</button>
+          </form>
+          {% endif %}
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

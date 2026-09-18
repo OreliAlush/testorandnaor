@@ -4,10 +4,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from planner.views import business_dashboard, business_request, business_signup, category_request, client_request, configurator, content_page, create_client_link, experts, general_offer, home, offer, offer_thanks, public_direct_offer, public_general_offer, services, thanks, update_offer_status
+from planner.intake import assistant_submit, offer_image, request_photo
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", home, name="home"),
+    path("בקשה/שליחה/", assistant_submit, name="assistant_submit"),
+    path("בקשה/תמונה/<str:kind>/<int:pk>/<int:image_id>/", request_photo, name="request_photo"),
+    path("הצעה/הדמיה/<str:kind>/<uuid:token>/", offer_image, name="offer_image"),
     path("פרגולות/", configurator, name="configurator"),
     path("תודה/", thanks, name="thanks"),
     path("הצעה/<uuid:token>/", offer, name="offer"),

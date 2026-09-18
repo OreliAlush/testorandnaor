@@ -8,6 +8,16 @@
   --gold: #edb75c;
   --mint: #82bca1;
 }
+[hidden] { display: none !important; }
+.workspace-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.project-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.project-gallery a { display: block; color: #f5f1e8; text-decoration: none; }
+.project-gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; background: #111b13; }
+.project-gallery span { display: block; font-size: 13px; margin-top: 6px; }
+.portal .notice { padding: 14px; border: 1px solid #627756; border-radius: 12px; background: #263a2b; }
+.portal .notice.warning, .portal .errorlist { color: #ffd39a; }
+.portal .hero a { color: #edb75c; }
+@media (max-width: 800px) { .workspace-grid { grid-template-columns: 1fr; } }
 * {
   box-sizing: border-box;
 }
@@ -168,11 +178,26 @@ body.portal {
   }
   .portal .topbar {
     margin-bottom: 20px;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
+  .portal .topbar > div:last-child { width: 100%; display: flex; gap: 8px; flex-wrap: wrap; }
+  .portal .topbar .button, .portal .topbar button { flex: 1; text-align: center; min-height: 44px; }
   .portal .hero {
-    padding: 22px;
+    padding: 20px 16px;
+    border-radius: 17px;
   }
   .portal .logo {
     font-size: 23px;
   }
+  .portal h1 { font-size: 30px; line-height: 1.2; }
+  .portal h2 { font-size: 19px; }
+  .portal .card { padding: 16px; border-radius: 14px; }
+  .portal input, .portal select, .portal textarea { font-size: 16px; min-height: 46px; }
+  .portal textarea { min-height: 110px; }
+  .portal button, .portal .button { width: 100%; min-height: 46px; text-align: center; }
+  .portal form button { margin-top: 8px; }
+  .portal .linkbox { font-size: 12px; }
+  .project-gallery { grid-template-columns: 1fr; }
 }

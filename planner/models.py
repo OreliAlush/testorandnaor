@@ -71,6 +71,7 @@ class ClientRequestLink(models.Model):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="client_links")
     category = models.ForeignKey(ServiceCategory, on_delete=models.PROTECT)
     label = models.CharField("שם הקישור", max_length=100, default="קישור ללקוחות")
+    customer_name = models.CharField("שם הלקוח", max_length=100, blank=True)
     token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -81,6 +82,7 @@ class ClientRequestLink(models.Model):
 
 
 class ServiceRequest(models.Model):
+    submission_id = models.UUIDField(unique=True, null=True, blank=True, editable=False)
     link = models.ForeignKey(ClientRequestLink, on_delete=models.PROTECT, related_name="requests")
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=30)
@@ -181,6 +183,7 @@ class ContentPage(models.Model):
 
 
 class GeneralRequest(models.Model):
+    submission_id = models.UUIDField(unique=True, null=True, blank=True, editable=False)
     STATUS_OPEN = "פתוחה"
     STATUS_AWARDED = "נסגרה"
     STATUS_CHOICES = [(STATUS_OPEN, "פתוחה להצעות"), (STATUS_AWARDED, "נסגרה עם בעל עסק")]
@@ -236,6 +239,7 @@ class GeneralOffer(models.Model):
 
 
 class MeasurementImage(models.Model):
+    caption = models.CharField("תיאור הצילום", max_length=140, blank=True)
     general_request = models.ForeignKey(GeneralRequest, on_delete=models.CASCADE, related_name="measurement_images", null=True, blank=True)
     service_request = models.ForeignKey(ServiceRequest, on_delete=models.CASCADE, related_name="measurement_images", null=True, blank=True)
     image = models.FileField("תמונת מדידה", upload_to="measurements/%Y/%m/")

@@ -12,12 +12,27 @@
         <a class="logo" href="/">Or<b>ProServices</b></a
         ><span
           ><span class="pill">{{ business.name }}</span>
-          <a class="pill" href="{% url 'business_logout' %}">יציאה</a></span
+          <form method="post" action="{% url 'business_logout' %}" style="display:inline">{% csrf_token %}<button type="submit">יציאה</button></form></span
         >
       </header>
       <section class="hero">
         <h1>ניהול פניות והצעות.</h1>
         <p>שלחת הצעה? עקוב אחריה וסגור אותה כבוצע או לא מעוניין.</p>
+      </section>
+      {% for message in messages %}<p class="notice {{ message.tags }}" role="status">{{ message }}</p>{% endfor %}
+      <section class="card" style="margin-bottom:16px">
+        <h2>בקשות שהגיעו אליי מקישור אישי</h2>
+        <p>כאן נמצאים הפרטים והתמונות שהלקוחות שלך שלחו. רק העסק שלך ומנהל האתר יכולים לצפות בהם.</p>
+        <ul class="requests">
+          {% for item in service_requests %}
+          <li>
+            <strong>{{ item.name }} · {{ item.link.label }}</strong>
+            <p>{{ item.link.category.name }} · {{ item.city }} · {{ item.status }} · {{ item.measurement_images.count }} תמונות</p>
+            <p>{{ item.description|truncatechars:140 }}</p>
+            <a class="button" href="{% url 'business_request' item.pk %}">פתיחת הבקשה והתמונות</a>
+          </li>
+          {% empty %}<li class="muted">כשהלקוח ישלים את השיחה בקישור האישי, הבקשה תופיע כאן.</li>{% endfor %}
+        </ul>
       </section>
       <section class="card">
         <h2>בקשות כלליות רלוונטיות</h2>
@@ -44,7 +59,11 @@
             <b>{{ offer.request.category.name }} · {{ offer.request.name }}</b>
             — ₪ {{ offer.price }}<br /><span class="muted"
               >סטטוס: {{ offer.status }}</span
-            >{% if offer.status == 'הצעה נשלחה' %}
+            >
+            <label>קישור ההצעה<input id="quote-general-{{ offer.pk }}" dir="ltr" readonly value="{{ request.scheme }}://{{ request.get_host }}{% url 'public_general_offer' offer.token %}"></label>
+            <button type="button" data-copy-link="quote-general-{{ offer.pk }}">העתקת קישור ההצעה</button>
+            <a class="button" href="{% url 'public_general_offer' offer.token %}" target="_blank" rel="noopener">פתיחת ההצעה ללקוח</a>
+            {% if offer.status == 'הצעה נשלחה' %}
             <form
               method="post"
               action="{% url 'update_offer_status' 'general' offer.token 'בוצע' %}"
@@ -63,7 +82,11 @@
           </li>
           {% endfor %}{% for offer in direct_offers %}
           <li>
-            <b>פנייה ישירה · {{ offer.request.name }}</b> — ₪ {{ offer.price }}<br /><span class="muted">סטטוס: {{ offer.status }}</span>{% if offer.status == 'הצעה נשלחה' %}
+            <b>פנייה ישירה · {{ offer.request.name }}</b> — ₪ {{ offer.price }}<br /><span class="muted">סטטוס: {{ offer.status }}</span>
+            <label>קישור ההצעה<input id="quote-direct-{{ offer.pk }}" dir="ltr" readonly value="{{ request.scheme }}://{{ request.get_host }}{% url 'public_direct_offer' offer.token %}"></label>
+            <button type="button" data-copy-link="quote-direct-{{ offer.pk }}">העתקת קישור ההצעה</button>
+            <a class="button" href="{% url 'public_direct_offer' offer.token %}" target="_blank" rel="noopener">פתיחת ההצעה ללקוח</a>
+            {% if offer.status == 'הצעה נשלחה' %}
             <form
               method="post"
               action="{% url 'update_offer_status' 'direct' offer.token 'בוצע' %}"
@@ -86,18 +109,29 @@
         </ul>
       </section>
       <section class="card" style="margin-top: 16px">
-        <h2>קישור חדש ללקוח</h2>
+        <h2>הזמנת לקוח לשיחה אישית</h2>
+        <p>מזינים שם לקוח ושם פרויקט. הבוט יפנה ללקוח בשמו ויחזיר את הבקשה ישירות אליך.</p>
         <form method="post" action="{% url 'create_client_link' %}">
-          {% csrf_token %}<label>שם קישור<input name="label" required /></label
-          ><label
-            >תחום<select name="category">
-              {% for c in business.categories.all %}
-              <option value="{{ c.id }}">{{ c.name }}</option>
-              {% endfor %}
-            </select></label
-          ><button>יצירת קישור</button>
+          {% csrf_token %}
+          {{ link_form.as_p }}
+          <button type="submit">יצירת קישור אישי</button>
         </form>
       </section>
+      <section class="card" style="margin-top:16px">
+        <h2>הקישורים שלי</h2>
+        <ul class="requests">
+          {% for link in links %}
+          <li>
+            <strong>{{ link.customer_name|default:"קישור כללי" }} · {{ link.label }}</strong>
+            <p>{{ link.category.name }} · {{ link.created_at|date:"d/m/Y" }} · {% if link.request_count %}התקבלו {{ link.request_count }} בקשות{% else %}ממתין למילוי{% endif %}{% if not link.is_active %} · לא פעיל{% endif %}</p>
+            <label>הקישור לשליחה ללקוח<input id="share-{{ link.pk }}" type="url" dir="ltr" value="{{ link.share_url }}" readonly /></label>
+            <button type="button" data-copy-link="share-{{ link.pk }}">העתקת הקישור</button>
+            <a class="button" href="{{ link.share_url }}" target="_blank" rel="noopener">תצוגה מקדימה</a>
+          </li>
+          {% empty %}<li class="muted">עדיין לא נוצרו קישורים אישיים.</li>{% endfor %}
+        </ul>
+      </section>
     </main>
+    <script src="{% static 'planner/business_dashboard.js' %}"></script>
   </body>
 </html>

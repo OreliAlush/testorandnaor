@@ -1,11 +1,14 @@
 import json
 from django.core.mail import send_mail
 from django.contrib.auth import login
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from .forms import ClientLinkForm, QuoteForm
+from .intake import chat_context, client_chat, eligible_general_requests, receive_intake, send_notification
 from .models import Business, BusinessOffer, ClientRequestLink, ContentPage, DirectOffer, ExpertProfile, GeneralOffer, GeneralRequest, MeasurementImage, QuoteInvitation, QuoteRequest, ServiceCategory, ServiceRequest, SiteSettings
 
 
@@ -46,7 +49,7 @@ def configurator(request):
 
 
 def home(request):
-    return render(request, "planner/home.html", {"categories": ServiceCategory.objects.filter(is_active=True), "site": site_settings(), "menu_pages": ContentPage.objects.filter(is_published=True, show_in_menu=True)})
+    return render(request, "planner/home.html", chat_context())
 
 
 def experts(request):
@@ -107,17 +110,21 @@ def business_signup(request):
 
 
 def _business_for_user(request):
-    return get_object_or_404(Business, owner=request.user)
+    return get_object_or_404(Business, owner=request.user, is_active=True)
 
 
 @login_required
-def business_dashboard(request):
+def business_dashboard(request, link_form=None):
     business = _business_for_user(request)
-    general_requests = GeneralRequest.objects.filter(status=GeneralRequest.STATUS_OPEN, category__in=business.categories.all()).filter(Q(invited_businesses__isnull=True) | Q(invited_businesses=business)).distinct()
+    general_requests = eligible_general_requests(business).filter(status=GeneralRequest.STATUS_OPEN).exclude(offers__business=business, offers__status="לא מעוניין").select_related("category")
+    links = list(business.client_links.select_related("category").annotate(request_count=Count("requests")).order_by("-created_at"))
+    for link in links:
+        link.share_url = request.build_absolute_uri(reverse("client_request", args=[link.token]))
     return render(request, "planner/business_dashboard.html", {
         "business": business,
-        "links": business.client_links.all(),
-        "service_requests": ServiceRequest.objects.filter(link__business=business),
+        "links": links,
+        "link_form": link_form or ClientLinkForm(business=business),
+        "service_requests": ServiceRequest.objects.filter(link__business=business).exclude(status__in=["בוצע", "לא מעוניין"]).select_related("link__category").prefetch_related("measurement_images"),
         "general_requests": general_requests,
         "direct_offers": DirectOffer.objects.filter(request__link__business=business).select_related("request"),
         "general_offers": GeneralOffer.objects.filter(business=business).select_related("request"),
@@ -128,22 +135,18 @@ def business_dashboard(request):
 def create_client_link(request):
     business = _business_for_user(request)
     if request.method == "POST":
-        category = get_object_or_404(business.categories, id=request.POST.get("category"))
-        ClientRequestLink.objects.create(business=business, category=category, label=request.POST.get("label", "קישור ללקוחות"))
+        form = ClientLinkForm(request.POST, business=business)
+        if not form.is_valid():
+            return business_dashboard(request, link_form=form)
+        link = form.save(commit=False)
+        link.business = business
+        link.save()
+        messages.success(request, f"הקישור האישי עבור {link.customer_name} נוצר. אפשר להעתיק ולשלוח ללקוח.")
     return redirect("business_dashboard")
 
 
 def client_request(request, token):
-    link = get_object_or_404(ClientRequestLink, token=token, is_active=True, business__is_active=True)
-    options = category_options(link.category.slug)
-    if request.method == "POST":
-        photo = request.FILES.get("photo")
-        if photo and (photo.size > 10 * 1024 * 1024 or photo.content_type not in {"image/jpeg", "image/png", "image/webp"}):
-            return render(request, "planner/client_request.html", {"link": link, "options": options, "error": "נא להעלות תמונת JPG, PNG או WEBP עד 10MB."})
-        service_request = ServiceRequest.objects.create(link=link, name=request.POST["name"], phone=request.POST["phone"], email=request.POST.get("email", ""), city=request.POST.get("city", ""), address=request.POST.get("address", ""), description=request.POST["description"], work_area=request.POST.get("work_area") or None, budget=request.POST.get("budget") or None, preferred_date=request.POST.get("preferred_date") or None, urgency=request.POST.get("urgency", "רגיל"), configuration=request_configuration(request), photo=photo, **measurement_data(request))
-        save_measurement_images(request, service_request=service_request)
-        return render(request, "planner/client_request_done.html", {"business": link.business})
-    return render(request, "planner/client_request.html", {"link": link, "options": options})
+    return client_chat(request, token)
 
 
 def category_options(slug):
@@ -201,102 +204,83 @@ def category_request(request, slug):
     options = category_options(slug)
     tip = category.request_tip or tips.get(slug, "")
     if request.method == "POST":
-        photo = request.FILES.get("photo")
-        if photo and (photo.size > 10 * 1024 * 1024 or photo.content_type not in {"image/jpeg", "image/png", "image/webp"}):
-            return render(request, "planner/category_request.html", {"category": category, "tip": tip, "options": options, "error": "נא להעלות תמונת JPG, PNG או WEBP עד 10MB."})
-        general_request = GeneralRequest.objects.create(category=category, name=request.POST["name"], phone=request.POST["phone"], email=request.POST.get("email", ""), city=request.POST.get("city", ""), address=request.POST.get("address", ""), description=request.POST["description"], work_area=request.POST.get("work_area") or None, budget=request.POST.get("budget") or None, preferred_date=request.POST.get("preferred_date") or None, urgency=request.POST.get("urgency", "רגיל"), configuration=request_configuration(request), photo=photo, **measurement_data(request))
-        save_measurement_images(request, general_request=general_request)
-        count = Business.objects.filter(is_active=True, categories=category).distinct().count()
-        return render(request, "planner/category_request_done.html", {"category": category, "count": count})
+        return receive_intake(request, category=category)
     return render(request, "planner/category_request.html", {"category": category, "tip": tip, "options": options})
+
+
+def _quote_workspace(request, business, item, kind):
+    model = DirectOffer if kind == "direct" else GeneralOffer
+    lookup = {"request": item}
+    if kind == "general":
+        lookup["business"] = business
+    existing = model.objects.filter(**lookup).first()
+    closed = item.status in {"בוצע", "לא מעוניין", GeneralRequest.STATUS_AWARDED}
+    fields = ("price", "message", "confirmed_width", "confirmed_length", "confirmed_height")
+    initial = {field: getattr(existing, field) for field in fields} if existing else {}
+    form = QuoteForm(request.POST if request.method == "POST" else None, request.FILES or None, initial=initial)
+    if request.method == "POST" and not closed and form.is_valid():
+        defaults = dict(form.cleaned_data)
+        if not defaults.get("visualization"):
+            defaults.pop("visualization", None)
+        defaults["status"] = "הצעה נשלחה"
+        offer, _ = model.objects.update_or_create(**lookup, defaults=defaults)
+        if kind == "direct":
+            item.status = "הצעה נשלחה"
+            item.save(update_fields=["status"])
+        delivered = send_customer_offer_email(request, offer, kind == "general")
+        if delivered:
+            messages.success(request, "ההצעה נשמרה והקישור נשלח במייל ללקוח.")
+        else:
+            messages.warning(request, "ההצעה נשמרה. לא נשלח מייל חיצוני; אפשר להעתיק את קישור ההצעה מהפאנל ולשלוח ללקוח.")
+        return redirect("business_dashboard")
+    try:
+        configuration = json.loads(item.configuration or "{}")
+    except (ValueError, TypeError):
+        configuration = {}
+    return render(request, "planner/offer_workspace.html", {
+        "item": item, "kind": kind, "business": business, "quote_form": form,
+        "existing_offer": existing, "closed": closed, "configuration": configuration,
+    })
 
 
 @login_required
 def business_request(request, pk):
     business = _business_for_user(request)
-    service_request = get_object_or_404(ServiceRequest, pk=pk, link__business=business)
-    if request.method == "POST":
-        try:
-            price = int(request.POST["price"])
-            if price < 1:
-                raise ValueError
-        except (KeyError, ValueError):
-            return render(request, "planner/business_request.html", {"service_request": service_request, "error": "נא להזין מחיר תקין."})
-        defaults = {
-            "price": price,
-            "message": request.POST.get("message", ""),
-            "status": "הצעה נשלחה",
-            **offer_measurements(request),
-        }
-        if visualization := request.FILES.get("visualization"):
-            defaults["visualization"] = visualization
-        offer, _ = DirectOffer.objects.update_or_create(
-            request=service_request,
-            defaults=defaults,
-        )
-        service_request.status = "הצעה נשלחה"
-        service_request.save(update_fields=["status"])
-        send_customer_offer_email(request, offer, False)
-        return redirect("business_dashboard")
-    return render(request, "planner/business_request.html", {"service_request": service_request})
+    item = get_object_or_404(ServiceRequest.objects.select_related("link__category"), pk=pk, link__business=business)
+    return _quote_workspace(request, business, item, "direct")
 
 
 @login_required
 def general_offer(request, pk):
     business = _business_for_user(request)
-    general_request = get_object_or_404(GeneralRequest, pk=pk, status=GeneralRequest.STATUS_OPEN)
-    eligible = general_request.category in business.categories.all() and (not general_request.invited_businesses.exists() or general_request.invited_businesses.filter(pk=business.pk).exists())
-    if not eligible:
-        return redirect("business_dashboard")
-    if request.method == "POST":
-        try:
-            price = int(request.POST["price"])
-            if price < 1:
-                raise ValueError
-        except (KeyError, ValueError):
-            return render(request, "planner/general_offer.html", {"general_request": general_request, "error": "נא להזין מחיר תקין."})
-        defaults = {
-            "price": price,
-            "message": request.POST.get("message", ""),
-            "status": "הצעה נשלחה",
-            **offer_measurements(request),
-        }
-        if visualization := request.FILES.get("visualization"):
-            defaults["visualization"] = visualization
-        offer, _ = GeneralOffer.objects.update_or_create(
-            request=general_request,
-            business=business,
-            defaults=defaults,
-        )
-        send_customer_offer_email(request, offer, True)
-        return redirect("business_dashboard")
-    return render(request, "planner/general_offer.html", {"general_request": general_request})
+    allowed = GeneralRequest.objects.filter(
+        Q(pk__in=eligible_general_requests(business).values("pk"), status=GeneralRequest.STATUS_OPEN)
+        | Q(offers__business=business)
+    )
+    item = get_object_or_404(allowed.distinct(), pk=pk)
+    return _quote_workspace(request, business, item, "general")
 
 
 def send_customer_offer_email(request, offer, is_general):
     customer = offer.request
-    if not customer.email:
-        return
     route = "public_general_offer" if is_general else "public_direct_offer"
     offer_url = request.build_absolute_uri(reverse(route, args=[offer.token]))
     business = offer.business if is_general else customer.link.business
-    send_mail(
+    return send_notification(
         f"הצעת מחיר מ־{business.name}",
         f"שלום {customer.name},\n\nקיבלת הצעת מחיר מ־{business.name}.\nלצפייה בהצעה: {offer_url}\n\nליצירת קשר: {business.phone or business.email}",
-        None,
-        [customer.email],
-        fail_silently=True,
+        customer.email,
     )
 
 
 def public_direct_offer(request, token):
     offer = get_object_or_404(DirectOffer, token=token)
-    return render(request, "planner/public_offer.html", {"offer": offer, "business": offer.request.link.business, "customer": offer.request})
+    return render(request, "planner/public_offer.html", {"offer": offer, "business": offer.request.link.business, "customer": offer.request, "kind": "direct"})
 
 
 def public_general_offer(request, token):
     offer = get_object_or_404(GeneralOffer, token=token)
-    return render(request, "planner/public_offer.html", {"offer": offer, "business": offer.business, "customer": offer.request})
+    return render(request, "planner/public_offer.html", {"offer": offer, "business": offer.business, "customer": offer.request, "kind": "general"})
 
 
 @login_required
